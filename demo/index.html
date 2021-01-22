@@ -1,29 +1,45 @@
-<!doctype html>
-<html lang="en-GB">
-<head>
-  <meta charset="utf-8">
-  <style>
-    body {
-      background: #fafafa;
-    }
-  </style>
-</head>
-<body>
-  <div id="demo"></div>
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <style>
+      html {
+        font-size: 10px;
+      }
+      body {
+        /* background: #333; */
+        background: white;
+      }
+      .container {
+        margin-top: 50px;
+        display: flex;
+        justify-content: center;
+      }
+    </style>
+  </head>
 
   <script type="module">
-    import { html, render } from 'lit-html';
     import '../dist/date-range-picker.js';
-
-    const title = 'Hello owc World!';
-    render(
-      html`
-        <date-range-picker .title=${title}>
-          some more light-dom
-        </date-range-picker>
-      `,
-      document.querySelector('#demo')
-    );
   </script>
-</body>
+  <body>
+    <div class="container">
+      <date-range-picker
+        data='{ "minDate": "Aug 21 2010", "maxDate": "12/21/2021","bins": [74, 67, 17, 66, 49, 93, 47, 61, 32, 46, 53, 2, 13, 45, 28, 1, 8, 70, 37, 74, 67, 17, 66, 49, 93, 47, 61, 70, 37, 74, 67, 17, 66, 49, 93, 47, 61, 32, 32, 70, 37, 74, 67, 17, 66, 49, 93, 47, 61, 32 ]}'
+      ></date-range-picker>
+    </div>
+    <div class="container">
+      <date-range-picker
+        width="300"
+        height="50"
+        tooltipWidth="140"
+        dateFormat="DD MMM YYYY"
+        style="
+          --dateRangePickerTooltipFontSize: 1rem;
+          --dateRangePickerInputWidth: 85px;
+        "
+        data='{ "minDate": "May 1972", "maxDate": "12/21/1980","bins": [ 85, 25, 200, 0, 0, 34, 0, 2, 5, 10, 0, 56, 10, 45, 100, 70, 50]}'
+      ></date-range-picker>
+    </div>
+  </body>
 </html>
