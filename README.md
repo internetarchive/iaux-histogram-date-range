@@ -2,6 +2,10 @@
 
 This webcomponent follows the [open-wc](https://github.com/open-wc/open-wc) recommendation.
 
+Travis:
+[![Build Status](https://travis-ci.com/internetarchive/iaux-date-range-picker.svg?branch=master)](https://travis-ci.com/internetarchive/iaux-date-range-picker)
+CodeCov: [![codecov](https://codecov.io/gh/internetarchive/iaux-date-range-picker/branch/master/graph/badge.svg)](https://codecov.io/gh/internetarchive/iaux-date-range-picker)
+
 ## Installation
 
 ```bash
