@@ -55,9 +55,9 @@ export class DateRangePicker extends LitElement {
     this._binWidth = 0;
     this._histData = [];
     this.move = (e) => {
-      const target = e.currentTarget;
       const newX = e.offsetX - this._dragOffset;
-      return target.id === "slider-min" ? this.setLeftSlider(newX) : this.setRightSlider(newX);
+      const slider = this.currentSlider;
+      return slider.id === "slider-min" ? this.setLeftSlider(newX) : this.setRightSlider(newX);
     };
   }
   firstUpdated() {
@@ -105,16 +105,21 @@ export class DateRangePicker extends LitElement {
     this.tooltip.innerHTML = "";
   }
   drag(e) {
-    const target = e.currentTarget;
-    const sliderX = target.id === "slider-min" ? this._leftSliderX : this._rightSliderX;
+    e.preventDefault();
+    this.currentSlider = e.currentTarget;
+    const sliderX = this.currentSlider.id === "slider-min" ? this._leftSliderX : this._rightSliderX;
     this._dragOffset = e.offsetX - sliderX;
-    target.classList.add("dragging");
-    target.addEventListener("pointermove", this.move);
+    this.currentSlider.classList.add("dragging");
+    this.histogram.addEventListener("pointermove", this.move);
+    if (e.pointerId) {
+      this.histogram.setPointerCapture(e.pointerId);
+    }
   }
-  drop(e) {
-    const target = e.currentTarget;
-    target.classList.remove("dragging");
-    target.removeEventListener("pointermove", this.move);
+  drop() {
+    this.histogram.removeEventListener("pointermove", this.move);
+    if (this.currentSlider) {
+      this.currentSlider.classList.remove("dragging");
+    }
   }
   setLeftSlider(newX) {
     const toSet = Math.min(newX, this._rightSliderX);
@@ -175,8 +180,6 @@ export class DateRangePicker extends LitElement {
       id="${id}"
       @pointerdown="${this.drag}"
       @pointerup="${this.drop}"
-      @pointerleave="${this.drop}"
-      @pointercancel="${this.drop}"
     >
       <path d="${sliderShape} z" fill="${sliderFill}" />
       <rect
@@ -265,7 +268,13 @@ export class DateRangePicker extends LitElement {
       <div id="container" style="width: ${this.width}px">
         ${this.renderTooltipStyleUpdates()}
         <div id="tooltip"></div>
-        <svg width="${this.width}" height="${this.height}">
+        <svg
+          width="${this.width}"
+          height="${this.height}"
+          @pointerup="${this.drop}"
+          @pointerleave="${this.drop}"
+          @pointercancel="${this.drop}"
+        >
           ${this.renderSelectedRange()}
           <svg id="histogram">${this.renderHistogram()}</svg>
           ${this.renderSlider("slider-min")} ${this.renderSlider("slider-max")}
@@ -359,6 +368,9 @@ __decorate([
   property({type: Object})
 ], DateRangePicker.prototype, "data", 2);
 __decorate([
+  property({type: Object})
+], DateRangePicker.prototype, "currentSlider", 2);
+__decorate([
   property({type: Number})
 ], DateRangePicker.prototype, "_leftSliderX", 2);
 __decorate([
@@ -367,3 +379,6 @@ __decorate([
 __decorate([
   query("#tooltip")
 ], DateRangePicker.prototype, "tooltip", 2);
+__decorate([
+  query("#histogram")
+], DateRangePicker.prototype, "histogram", 2);
