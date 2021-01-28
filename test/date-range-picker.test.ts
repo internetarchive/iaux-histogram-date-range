@@ -107,6 +107,7 @@ describe('DateRangePicker', () => {
 
     /* -------------------------- minimum (left) slider ------------------------- */
     const minSlider = el.shadowRoot?.querySelector('#slider-min') as SVGElement;
+    const histogram = el.shadowRoot?.querySelector('#histogram') as SVGElement;
     const minDateInput = el.shadowRoot?.querySelector(
       '#date-min'
     ) as HTMLInputElement;
@@ -120,7 +121,7 @@ describe('DateRangePicker', () => {
     expect(minSlider.classList[0]).to.eq('dragging'); // cursor changes to 'grab'
 
     // slide to right
-    minSlider.dispatchEvent(new PointerEvent('pointermove', { clientX: 60 }));
+    histogram.dispatchEvent(new PointerEvent('pointermove', { clientX: 60 }));
     await aTimeout(20);
 
     // slider has moved
@@ -129,7 +130,7 @@ describe('DateRangePicker', () => {
     expect(minDateInput.value).to.eq('4/23/1940');
 
     // stop dragging
-    minSlider.dispatchEvent(new PointerEvent('pointerleave'));
+    minSlider.dispatchEvent(new PointerEvent('pointerup'));
     // cursor returns to normal
     expect(minSlider.classList[0]).to.be.undefined;
 
@@ -144,7 +145,7 @@ describe('DateRangePicker', () => {
 
     // slide to left
     maxSlider.dispatchEvent(new PointerEvent('pointerdown', { clientX: 195 }));
-    maxSlider.dispatchEvent(new PointerEvent('pointermove', { clientX: 170 }));
+    histogram.dispatchEvent(new PointerEvent('pointermove', { clientX: 170 }));
     await aTimeout(40);
 
     // slider has moved
@@ -154,7 +155,7 @@ describe('DateRangePicker', () => {
 
     // try to slide min slider past max slider
     minSlider.dispatchEvent(new PointerEvent('pointerdown', { clientX: 62 }));
-    minSlider.dispatchEvent(new PointerEvent('pointermove', { clientX: 190 }));
+    histogram.dispatchEvent(new PointerEvent('pointermove', { clientX: 190 }));
     await aTimeout(40);
 
     // slider moves all the way to meet the right slider
@@ -162,7 +163,7 @@ describe('DateRangePicker', () => {
 
     // try to slide max slider past min slider
     maxSlider.dispatchEvent(new PointerEvent('pointerdown', { clientX: 120 }));
-    maxSlider.dispatchEvent(new PointerEvent('pointermove', { clientX: 50 }));
+    histogram.dispatchEvent(new PointerEvent('pointermove', { clientX: 50 }));
     await aTimeout(20);
     expect(maxSlider.getBoundingClientRect().x).to.eq(173); // max slider didn't move
   });

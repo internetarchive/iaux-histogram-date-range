@@ -61,6 +61,7 @@ export class DateRangePicker extends LitElement {
   @property({ type: Number }) tooltipHeight = TOOLTIP_HEIGHT;
   @property({ type: String }) dateFormat = DATE_FORMAT;
   @property({ type: Object }) data?: HistogramInputData;
+  @property({ type: Object }) currentSlider?: SVGRectElement;
 
   // these properties are intended to be private
   @property({ type: Number }) _leftSliderX: number = 0;
@@ -192,31 +193,43 @@ export class DateRangePicker extends LitElement {
     this.tooltip.innerHTML = '';
   }
 
+  @query('#histogram') histogram!: HTMLDivElement;
+
   drag(e: PointerEvent): void {
-    const target = e.currentTarget as SVGRectElement;
+    // prevent selecting text or other ranges while dragging, especially in Safari
+    e.preventDefault();
+
+    this.currentSlider = e.currentTarget as SVGRectElement;
     const sliderX =
-      (target.id as SliderIds) === 'slider-min'
+      (this.currentSlider.id as SliderIds) === 'slider-min'
         ? this._leftSliderX
         : this._rightSliderX;
     this._dragOffset = e.offsetX - sliderX;
-    target.classList.add('dragging');
-    target.addEventListener('pointermove', this.move);
+    this.currentSlider.classList.add('dragging');
+    this.histogram.addEventListener('pointermove', this.move);
+
+    // ensure that we catch the pointer up event, no matter where the pointer is
+    // when it's released. for more info see
+    // https://developers.google.com/web/updates/2016/10/pointer-events#pointer_capture
+    if (e.pointerId) {
+      this.histogram.setPointerCapture(e.pointerId);
+    }
   }
 
-  drop(e: PointerEvent): void {
-    const target = e.currentTarget as SVGRectElement;
-    target.classList.remove('dragging');
-    target.removeEventListener('pointermove', this.move);
+  drop(): void {
+    this.histogram.removeEventListener('pointermove', this.move);
+    if (this.currentSlider) {
+      this.currentSlider.classList.remove('dragging');
+    }
   }
 
   // use an arrow function so that `this` is bound to the DateRangePicker object
   // and not the event target. for more info see
   // https://lit-element.polymer-project.org/guide/events#using-this-in-event-listeners
   move = (e: PointerEvent): void => {
-    const target = e.currentTarget as SVGRectElement;
     const newX = e.offsetX - this._dragOffset;
-
-    return (target.id as SliderIds) === 'slider-min'
+    const slider = this.currentSlider as SVGRectElement;
+    return (slider.id as SliderIds) === 'slider-min'
       ? this.setLeftSlider(newX)
       : this.setRightSlider(newX);
   };
@@ -294,8 +307,6 @@ export class DateRangePicker extends LitElement {
       id="${id}"
       @pointerdown="${this.drag}"
       @pointerup="${this.drop}"
-      @pointerleave="${this.drop}"
-      @pointercancel="${this.drop}"
     >
       <path d="${sliderShape} z" fill="${sliderFill}" />
       <rect
@@ -390,7 +401,13 @@ export class DateRangePicker extends LitElement {
       <div id="container" style="width: ${this.width}px">
         ${this.renderTooltipStyleUpdates()}
         <div id="tooltip"></div>
-        <svg width="${this.width}" height="${this.height}">
+        <svg
+          width="${this.width}"
+          height="${this.height}"
+          @pointerup="${this.drop}"
+          @pointerleave="${this.drop}"
+          @pointercancel="${this.drop}"
+        >
           ${this.renderSelectedRange()}
           <svg id="histogram">${this.renderHistogram()}</svg>
           ${this.renderSlider('slider-min')} ${this.renderSlider('slider-max')}
