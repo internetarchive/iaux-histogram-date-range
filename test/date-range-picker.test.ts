@@ -2,7 +2,7 @@
 import { html, fixture, expect, aTimeout } from '@open-wc/testing';
 
 import { DateRangePicker } from '../src/DateRangePicker.js';
-import '../date-range-picker.js';
+import '../src/date-range-picker.js';
 
 const SLIDER_WIDTH = 10;
 const WIDTH = 200;
