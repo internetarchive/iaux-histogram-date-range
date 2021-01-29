@@ -391,7 +391,7 @@ export class DateRangePicker extends LitElement {
     return html`
       <input
         id="date-${kind}"
-        placeholder="${kind} date"
+        placeholder="${DATE_FORMAT}"
         type="text"
         @change="${this.handleDateInput}"
         .value="${this.translatePositionToDate(x)}"
