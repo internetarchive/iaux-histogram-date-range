@@ -146,7 +146,7 @@ describe('DateRangePicker', () => {
 
     // pointer down
     minSlider.dispatchEvent(new PointerEvent('pointerdown'));
-    expect(container.classList[0]).to.eq('dragging'); // cursor changes to 'grab'
+    expect(Array.from(container.classList)).to.include('dragging'); // cursor changes to 'grab'
 
     // slide to right
     window.dispatchEvent(new PointerEvent('pointermove', { clientX: 70 }));
@@ -161,7 +161,7 @@ describe('DateRangePicker', () => {
     window.dispatchEvent(new PointerEvent('pointerup'));
     await aTimeout(20);
     // cursor returns to normal
-    expect(container.classList[0]).to.be.undefined;
+    expect(Array.from(container.classList)).not.to.include('dragging');
 
     /* -------------------------- maximum (right) slider ------------------------- */
     const maxSlider = el.shadowRoot?.querySelector('#slider-max') as SVGElement;

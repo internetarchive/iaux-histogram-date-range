@@ -87,6 +87,15 @@ export class DateRangePicker extends LitElement {
       touch-action: none;
       position: relative;
     }
+    /* prevent selection from interfering with tooltip, especially on mobile */
+    /* https://stackoverflow.com/a/4407335/1163042 */
+    .noselect {
+      -webkit-touch-callout: none; /* iOS Safari */
+      -webkit-user-select: none; /* Safari */
+      -moz-user-select: none; /* Old versions of Firefox */
+      -ms-user-select: none; /* Internet Explorer/Edge */
+      user-select: none; /* current Chrome, Edge, Opera and Firefox */
+    }
     .bar:hover {
       fill-opacity: 0.7;
     }
@@ -178,7 +187,7 @@ export class DateRangePicker extends LitElement {
   }
 
   showTooltip(e: PointerEvent): void {
-    if (this.container.classList[0] === 'dragging') {
+    if (Array.from(this.container.classList).includes('dragging')) {
       return;
     }
     const target = e.currentTarget as SVGRectElement;
@@ -410,7 +419,7 @@ export class DateRangePicker extends LitElement {
       return html`no data`;
     }
     return html`
-      <div id="container" style="width: ${this.width}px">
+      <div id="container" class="noselect" style="width: ${this.width}px">
         ${this.renderTooltipStyleUpdates()}
         <div id="tooltip"></div>
         <svg
