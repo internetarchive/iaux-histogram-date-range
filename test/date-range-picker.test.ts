@@ -107,7 +107,9 @@ describe('DateRangePicker', () => {
 
     /* -------------------------- minimum (left) slider ------------------------- */
     const minSlider = el.shadowRoot?.querySelector('#slider-min') as SVGElement;
-    const histogram = el.shadowRoot?.querySelector('#histogram') as SVGElement;
+    const container = el.shadowRoot?.querySelector(
+      '#container'
+    ) as HTMLDivElement;
     const minDateInput = el.shadowRoot?.querySelector(
       '#date-min'
     ) as HTMLInputElement;
@@ -118,10 +120,10 @@ describe('DateRangePicker', () => {
 
     // pointer down
     minSlider.dispatchEvent(new PointerEvent('pointerdown'));
-    expect(minSlider.classList[0]).to.eq('dragging'); // cursor changes to 'grab'
+    expect(container.classList[0]).to.eq('dragging'); // cursor changes to 'grab'
 
     // slide to right
-    histogram.dispatchEvent(new PointerEvent('pointermove', { clientX: 60 }));
+    window.dispatchEvent(new PointerEvent('pointermove', { clientX: 70 }));
     await aTimeout(20);
 
     // slider has moved
@@ -130,9 +132,10 @@ describe('DateRangePicker', () => {
     expect(minDateInput.value).to.eq('4/23/1940');
 
     // stop dragging
-    minSlider.dispatchEvent(new PointerEvent('pointerup'));
+    window.dispatchEvent(new PointerEvent('pointerup'));
+    await aTimeout(20);
     // cursor returns to normal
-    expect(minSlider.classList[0]).to.be.undefined;
+    expect(container.classList[0]).to.be.undefined;
 
     /* -------------------------- maximum (right) slider ------------------------- */
     const maxSlider = el.shadowRoot?.querySelector('#slider-max') as SVGElement;
@@ -145,27 +148,27 @@ describe('DateRangePicker', () => {
 
     // slide to left
     maxSlider.dispatchEvent(new PointerEvent('pointerdown', { clientX: 195 }));
-    histogram.dispatchEvent(new PointerEvent('pointermove', { clientX: 170 }));
-    await aTimeout(40);
+    window.dispatchEvent(new PointerEvent('pointermove', { clientX: 160 }));
+    await aTimeout(20);
 
     // slider has moved
-    expect(maxSlider.getBoundingClientRect().x).to.eq(173);
+    expect(maxSlider.getBoundingClientRect().x).to.eq(171);
     // max date is updated
-    expect(maxDateInput.value).to.eq('2/17/2004');
+    expect(maxDateInput.value).to.eq('10/14/2002');
 
     // try to slide min slider past max slider
     minSlider.dispatchEvent(new PointerEvent('pointerdown', { clientX: 62 }));
-    histogram.dispatchEvent(new PointerEvent('pointermove', { clientX: 190 }));
-    await aTimeout(40);
+    window.dispatchEvent(new PointerEvent('pointermove', { clientX: 190 }));
+    await aTimeout(20);
 
     // slider moves all the way to meet the right slider
-    expect(minSlider.getBoundingClientRect().x).to.eq(163);
+    expect(minSlider.getBoundingClientRect().x).to.eq(161);
 
     // try to slide max slider past min slider
     maxSlider.dispatchEvent(new PointerEvent('pointerdown', { clientX: 120 }));
-    histogram.dispatchEvent(new PointerEvent('pointermove', { clientX: 50 }));
+    window.dispatchEvent(new PointerEvent('pointermove', { clientX: 50 }));
     await aTimeout(20);
-    expect(maxSlider.getBoundingClientRect().x).to.eq(173); // max slider didn't move
+    expect(maxSlider.getBoundingClientRect().x).to.eq(171); // max slider didn't move
   });
 
   it('shows/hides tooltip when hovering over (or pointing at) a bar', async () => {

@@ -67,6 +67,9 @@ export class DateRangePicker extends LitElement {
   @property({ type: Number }) _leftSliderX: number = 0;
   @property({ type: Number }) _rightSliderX: number = 0;
 
+  @query('#tooltip') tooltip!: HTMLDivElement;
+  @query('#container') container!: HTMLDivElement;
+
   // these properties don't need to be tracked for changes
   _minDate: number = 0;
   _maxDate: number = 0;
@@ -84,10 +87,10 @@ export class DateRangePicker extends LitElement {
       touch-action: none;
       position: relative;
     }
-    /****** histogram ********/
     .bar:hover {
       fill-opacity: 0.7;
     }
+    /****** histogram ********/
     #tooltip {
       position: absolute;
       display: none;
@@ -137,7 +140,7 @@ export class DateRangePicker extends LitElement {
     }
   `;
 
-  firstUpdated() {
+  firstUpdated(): void {
     this._leftSliderX = this.sliderWidth;
     this._rightSliderX = this.width - this.sliderWidth;
     this._minDate = dayjs(this.data?.minDate).valueOf();
@@ -174,9 +177,10 @@ export class DateRangePicker extends LitElement {
     return this._maxDate - this._minDate;
   }
 
-  @query('#tooltip') tooltip!: HTMLDivElement;
-
   showTooltip(e: PointerEvent): void {
+    if (this.container.classList[0] === 'dragging') {
+      return;
+    }
     const target = e.currentTarget as SVGRectElement;
     const x = target.x.baseVal.value + this.sliderWidth / 2;
     const data = target.dataset;
@@ -193,39 +197,30 @@ export class DateRangePicker extends LitElement {
     this.tooltip.innerHTML = '';
   }
 
-  @query('#histogram') histogram!: HTMLDivElement;
-
-  drag(e: PointerEvent): void {
+  // use arrow functions (rather than standard JS class instance methods) so
+  // that `this` is bound to the DateRangePicker object and not the event
+  // target. for more info see
+  // https://lit-element.polymer-project.org/guide/events#using-this-in-event-listeners
+  drag = (e: PointerEvent): void => {
     // prevent selecting text or other ranges while dragging, especially in Safari
     e.preventDefault();
 
-    this.currentSlider = e.currentTarget as SVGRectElement;
-    const sliderX =
-      (this.currentSlider.id as SliderIds) === 'slider-min'
-        ? this._leftSliderX
-        : this._rightSliderX;
-    this._dragOffset = e.offsetX - sliderX;
-    this.currentSlider.classList.add('dragging');
-    this.histogram.addEventListener('pointermove', this.move);
+    this.setDragOffset(e);
+    this.container.classList.add('dragging');
 
-    // ensure that we catch the pointer up event, no matter where the pointer is
-    // when it's released. for more info see
-    // https://developers.google.com/web/updates/2016/10/pointer-events#pointer_capture
-    if (e.pointerId) {
-      this.histogram.setPointerCapture(e.pointerId);
-    }
-  }
+    window.addEventListener('pointermove', this.move);
+    window.addEventListener('pointerup', this.drop);
+    window.addEventListener('pointercancel', this.drop);
+  };
 
-  drop(): void {
-    this.histogram.removeEventListener('pointermove', this.move);
-    if (this.currentSlider) {
-      this.currentSlider.classList.remove('dragging');
-    }
-  }
+  drop = (): void => {
+    this.container.classList.remove('dragging');
 
-  // use an arrow function so that `this` is bound to the DateRangePicker object
-  // and not the event target. for more info see
-  // https://lit-element.polymer-project.org/guide/events#using-this-in-event-listeners
+    window.removeEventListener('pointermove', this.move);
+    window.removeEventListener('pointerup', this.drop);
+    window.removeEventListener('pointercancel', this.drop);
+  };
+
   move = (e: PointerEvent): void => {
     const newX = e.offsetX - this._dragOffset;
     const slider = this.currentSlider as SVGRectElement;
@@ -234,9 +229,27 @@ export class DateRangePicker extends LitElement {
       : this.setRightSlider(newX);
   };
 
+  // find position of pointer in relation to the current slider
+  setDragOffset(e: PointerEvent): void {
+    this.currentSlider = e.currentTarget as SVGRectElement;
+    const sliderX =
+      (this.currentSlider.id as SliderIds) === 'slider-min'
+        ? this._leftSliderX
+        : this._rightSliderX;
+    this._dragOffset = e.offsetX - sliderX;
+    // work around Firefox issue where e.offsetX seems to be not based on current
+    // element but on background element
+    if (
+      this._dragOffset > this.sliderWidth ||
+      this._dragOffset < -this.sliderWidth
+    ) {
+      this._dragOffset = 0;
+    }
+  }
+
   setLeftSlider(newX: number): void {
-    const toSet = Math.min(newX, this._rightSliderX);
-    this._leftSliderX = Math.max(toSet, this.sliderWidth);
+    const toSet = Math.max(newX, this.sliderWidth);
+    this._leftSliderX = Math.min(toSet, this._rightSliderX);
   }
 
   setRightSlider(newX: number): void {
@@ -306,7 +319,6 @@ export class DateRangePicker extends LitElement {
     <svg
       id="${id}"
       @pointerdown="${this.drag}"
-      @pointerup="${this.drop}"
     >
       <path d="${sliderShape} z" fill="${sliderFill}" />
       <rect
@@ -378,7 +390,7 @@ export class DateRangePicker extends LitElement {
     `;
   }
 
-  renderTooltipStyleUpdates() {
+  renderTooltipStyleUpdates(): TemplateResult {
     return html`
       <style>
         #tooltip {
@@ -404,9 +416,7 @@ export class DateRangePicker extends LitElement {
         <svg
           width="${this.width}"
           height="${this.height}"
-          @pointerup="${this.drop}"
           @pointerleave="${this.drop}"
-          @pointercancel="${this.drop}"
         >
           ${this.renderSelectedRange()}
           <svg id="histogram">${this.renderHistogram()}</svg>
