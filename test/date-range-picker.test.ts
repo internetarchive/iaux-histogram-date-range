@@ -7,16 +7,42 @@ import '../src/date-range-picker.js';
 const SLIDER_WIDTH = 10;
 const WIDTH = 200;
 
-const subject = html` <date-range-picker
-  width="${WIDTH}"
-  height="50"
-  data='{ "minDate": "1900", "maxDate": "Dec 4, 2020","bins": [ 33, 1, 100] }'
->
-</date-range-picker>`;
+const subject = html`
+  <date-range-picker
+    width="${WIDTH}"
+    tooltipWidth="140"
+    height="50"
+    data='{ "minDate": "1900", "maxDate": "Dec 4, 2020","bins": [ 33, 1, 100] }'
+  >
+  </date-range-picker>
+`;
+
+async function createCustomElementInHTMLContainer() {
+  document.head.insertAdjacentHTML(
+    'beforeend',
+    `<style>
+      html {
+        font-size:10px;
+      }
+      .container {
+        width: 400px; 
+        height: 400px; 
+        display: flex; 
+        background: #FFF6E1;
+        justify-content: center; 
+        align-items: center;
+      }
+    </style>`
+  );
+  // https://open-wc.org/docs/testing/helpers/#customize-the-fixture-container
+  const parentNode = document.createElement('div');
+  parentNode.setAttribute('class', 'container');
+  return fixture<DateRangePicker>(subject, { parentNode });
+}
 
 describe('DateRangePicker', () => {
   it('shows scaled histogram bars when provided with data', async () => {
-    const el = await fixture<DateRangePicker>(subject);
+    const el = await createCustomElementInHTMLContainer();
     const bars = (el.shadowRoot?.querySelectorAll(
       '.bar'
     ) as unknown) as SVGRectElement[];
@@ -25,8 +51,8 @@ describe('DateRangePicker', () => {
     expect(heights).to.eql([38, 7, 50]);
   });
 
-  it('changes the position of the sliders and standardizes date format when dates are input', async () => {
-    const el = await fixture<DateRangePicker>(subject);
+  it('changes the position of the sliders and standardizes date format when dates are entered', async () => {
+    const el = await createCustomElementInHTMLContainer();
 
     /* -------------------------- minimum (left) slider ------------------------- */
     expect(el._leftSliderX).to.eq(SLIDER_WIDTH);
@@ -66,7 +92,7 @@ describe('DateRangePicker', () => {
   });
 
   it('handles invalid date inputs', async () => {
-    const el = await fixture<DateRangePicker>(subject);
+    const el = await createCustomElementInHTMLContainer();
 
     /* -------------------------- minimum (left) slider ------------------------- */
     const minDateInput = el.shadowRoot?.querySelector(
@@ -103,7 +129,7 @@ describe('DateRangePicker', () => {
   });
 
   it('updates the date inputs when the sliders are moved', async () => {
-    const el = await fixture<DateRangePicker>(subject);
+    const el = await createCustomElementInHTMLContainer();
 
     /* -------------------------- minimum (left) slider ------------------------- */
     const minSlider = el.shadowRoot?.querySelector('#slider-min') as SVGElement;
@@ -115,7 +141,7 @@ describe('DateRangePicker', () => {
     ) as HTMLInputElement;
 
     // initial state
-    expect(minSlider.getBoundingClientRect().x).to.eq(8);
+    expect(minSlider.getBoundingClientRect().x).to.eq(108);
     expect(minSlider.classList[0]).to.be.undefined;
 
     // pointer down
@@ -127,7 +153,7 @@ describe('DateRangePicker', () => {
     await aTimeout(20);
 
     // slider has moved
-    expect(minSlider.getBoundingClientRect().x).to.eq(68);
+    expect(minSlider.getBoundingClientRect().x).to.eq(168);
     // min date is updated
     expect(minDateInput.value).to.eq('4/23/1940');
 
@@ -144,7 +170,7 @@ describe('DateRangePicker', () => {
     ) as HTMLInputElement;
 
     // initial state
-    expect(maxSlider.getBoundingClientRect().x).to.eq(198);
+    expect(maxSlider.getBoundingClientRect().x).to.eq(298);
 
     // slide to left
     maxSlider.dispatchEvent(new PointerEvent('pointerdown', { clientX: 195 }));
@@ -152,9 +178,10 @@ describe('DateRangePicker', () => {
     await aTimeout(20);
 
     // slider has moved
-    expect(maxSlider.getBoundingClientRect().x).to.eq(171);
+    expect(maxSlider.getBoundingClientRect().x).to.eq(268);
     // max date is updated
-    expect(maxDateInput.value).to.eq('10/14/2002');
+    expect(maxDateInput.value).to.eq('10/8/2000');
+    await aTimeout(20);
 
     // try to slide min slider past max slider
     minSlider.dispatchEvent(new PointerEvent('pointerdown', { clientX: 62 }));
@@ -162,17 +189,17 @@ describe('DateRangePicker', () => {
     await aTimeout(20);
 
     // slider moves all the way to meet the right slider
-    expect(minSlider.getBoundingClientRect().x).to.eq(161);
+    expect(minSlider.getBoundingClientRect().x).to.eq(258);
 
     // try to slide max slider past min slider
     maxSlider.dispatchEvent(new PointerEvent('pointerdown', { clientX: 120 }));
     window.dispatchEvent(new PointerEvent('pointermove', { clientX: 50 }));
     await aTimeout(20);
-    expect(maxSlider.getBoundingClientRect().x).to.eq(171); // max slider didn't move
+    expect(maxSlider.getBoundingClientRect().x).to.eq(268); // max slider didn't move
   });
 
   it('shows/hides tooltip when hovering over (or pointing at) a bar', async () => {
-    const el = await fixture<DateRangePicker>(subject);
+    const el = await createCustomElementInHTMLContainer();
     const bars = (el.shadowRoot?.querySelectorAll(
       '.bar'
     ) as unknown) as SVGRectElement[];
@@ -192,6 +219,27 @@ describe('DateRangePicker', () => {
     // ensure singular item is not pluralized
     bars[1].dispatchEvent(new PointerEvent('pointerenter'));
     expect(tooltip.innerText).to.match(/^1 item\n4\/23\/1940 - 8\/13\/1980/);
+  });
+
+  it('does not show tooltip while dragging', async () => {
+    const el = await createCustomElementInHTMLContainer();
+    const bars = (el.shadowRoot?.querySelectorAll(
+      '.bar'
+    ) as unknown) as SVGRectElement[];
+    const tooltip = el.shadowRoot?.querySelector('#tooltip') as HTMLDivElement;
+    expect(tooltip.innerText).to.eq('');
+    const minSlider = el.shadowRoot?.querySelector('#slider-min') as SVGElement;
+
+    // pointer down and slide right
+    minSlider.dispatchEvent(new PointerEvent('pointerdown'));
+    window.dispatchEvent(new PointerEvent('pointermove', { clientX: 100 }));
+    await aTimeout(20);
+
+    // hover over bar
+    bars[0].dispatchEvent(new PointerEvent('pointerenter'));
+    await aTimeout(20);
+    // tooltip display is suppressed while dragging
+    expect(tooltip.style.display).to.eq('');
   });
 
   it('passes the a11y audit', async () => {
