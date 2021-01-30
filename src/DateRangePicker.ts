@@ -66,7 +66,6 @@ export class DateRangePicker extends LitElement {
   @property({ type: String }) tooltipDisplay: 'block' | 'none' = 'none';
   @property({ type: String }) dateFormat = DATE_FORMAT;
   @property({ type: Object }) data?: HistogramInputData;
-  @property({ type: Object }) currentSlider?: SVGRectElement;
 
   // these properties are intended to be private
   @property({ type: Number }) _leftSliderX: number = 0;
@@ -82,6 +81,7 @@ export class DateRangePicker extends LitElement {
   _histWidth: number = 0;
   _numBins: number = 0;
   _binWidth: number = 0;
+  _currentSlider?: SVGRectElement;
   _histData: HistogramItem[] = [];
 
   /* eslint-enable lines-between-class-members */
@@ -240,7 +240,7 @@ export class DateRangePicker extends LitElement {
 
   move = (e: PointerEvent): void => {
     const newX = e.offsetX - this._dragOffset;
-    const slider = this.currentSlider as SVGRectElement;
+    const slider = this._currentSlider as SVGRectElement;
     return (slider.id as SliderIds) === 'slider-min'
       ? this.setLeftSlider(newX)
       : this.setRightSlider(newX);
@@ -248,9 +248,9 @@ export class DateRangePicker extends LitElement {
 
   // find position of pointer in relation to the current slider
   setDragOffset(e: PointerEvent): void {
-    this.currentSlider = e.currentTarget as SVGRectElement;
+    this._currentSlider = e.currentTarget as SVGRectElement;
     const sliderX =
-      (this.currentSlider.id as SliderIds) === 'slider-min'
+      (this._currentSlider.id as SliderIds) === 'slider-min'
         ? this._leftSliderX
         : this._rightSliderX;
     this._dragOffset = e.offsetX - sliderX;
