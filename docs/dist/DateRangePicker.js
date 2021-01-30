@@ -17,6 +17,7 @@ import {
   property,
   query
 } from "../_snowpack/pkg/lit-element.js";
+import {nothing} from "../_snowpack/pkg/lit-html.js";
 import dayjs from "../_snowpack/pkg/dayjs/esm/index.js";
 const WIDTH = 180;
 const HEIGHT = 40;
@@ -24,7 +25,6 @@ const SLIDER_WIDTH = 10;
 const TOOLTIP_WIDTH = 125;
 const TOOLTIP_HEIGHT = 30;
 const DATE_FORMAT = "M/D/YYYY";
-const DATE_PARSING_ERROR = -1;
 const SLIDER_CORNER_SIZE = 4;
 const sliderFill = "var(--dateRangePickerSliderFill, #4B65FE)";
 const selectedRangeFill = "var(--dateRangePickerSelectedRangeFill, #DBE0FF)";
@@ -44,6 +44,9 @@ export class DateRangePicker extends LitElement {
     this.sliderWidth = SLIDER_WIDTH;
     this.tooltipWidth = TOOLTIP_WIDTH;
     this.tooltipHeight = TOOLTIP_HEIGHT;
+    this.tooltipOffset = 0;
+    this.tooltipContent = nothing;
+    this.tooltipDisplay = "none";
     this.dateFormat = DATE_FORMAT;
     this._leftSliderX = 0;
     this._rightSliderX = 0;
@@ -70,7 +73,7 @@ export class DateRangePicker extends LitElement {
     };
     this.move = (e) => {
       const newX = e.offsetX - this._dragOffset;
-      const slider = this.currentSlider;
+      const slider = this._currentSlider;
       return slider.id === "slider-min" ? this.setLeftSlider(newX) : this.setRightSlider(newX);
     };
   }
@@ -91,7 +94,7 @@ export class DateRangePicker extends LitElement {
     const minValue = Math.min(...this.data.bins);
     const maxValue = Math.max(...this.data.bins);
     const valueScale = this.height / Math.log1p(maxValue - minValue);
-    const dateScale = this.dateRange() / this._numBins;
+    const dateScale = this.dateRange / this._numBins;
     return this.data.bins.map((v, i) => {
       return {
         value: v,
@@ -101,29 +104,31 @@ export class DateRangePicker extends LitElement {
       };
     });
   }
-  dateRange() {
+  get dateRange() {
     return this._maxDate - this._minDate;
   }
   showTooltip(e) {
-    if (this.container.classList[0] === "dragging") {
+    if (Array.from(this.container.classList).includes("dragging")) {
       return;
     }
     const target = e.currentTarget;
     const x = target.x.baseVal.value + this.sliderWidth / 2;
     const data = target.dataset;
     const itemsText = `item${data.numItems !== "1" ? "s" : ""}`;
-    const tooltipOffset = x + (this._binWidth - this.sliderWidth - this.tooltipWidth) / 2;
-    this.tooltip.style.left = `${tooltipOffset}px`;
-    this.tooltip.innerHTML = `${data.numItems} ${itemsText}<br>${data.binStart} - ${data.binEnd}`;
-    this.tooltip.style.display = "block";
+    this.tooltipOffset = x + (this._binWidth - this.sliderWidth - this.tooltipWidth) / 2;
+    this.tooltipContent = html`
+      ${data.numItems} ${itemsText}<br />
+      ${data.binStart} - ${data.binEnd}
+    `;
+    this.tooltipDisplay = "block";
   }
   hideTooltip() {
-    this.tooltip.style.display = "none";
-    this.tooltip.innerHTML = "";
+    this.tooltipContent = nothing;
+    this.tooltipDisplay = "none";
   }
   setDragOffset(e) {
-    this.currentSlider = e.currentTarget;
-    const sliderX = this.currentSlider.id === "slider-min" ? this._leftSliderX : this._rightSliderX;
+    this._currentSlider = e.currentTarget;
+    const sliderX = this._currentSlider.id === "slider-min" ? this._leftSliderX : this._rightSliderX;
     this._dragOffset = e.offsetX - sliderX;
     if (this._dragOffset > this.sliderWidth || this._dragOffset < -this.sliderWidth) {
       this._dragOffset = 0;
@@ -138,27 +143,27 @@ export class DateRangePicker extends LitElement {
     this._rightSliderX = Math.min(toSet, this.width - this.sliderWidth);
   }
   translatePositionToDate(x) {
-    const milliseconds = (x - this.sliderWidth) * this.dateRange() / this._histWidth;
+    const milliseconds = (x - this.sliderWidth) * this.dateRange / this._histWidth;
     const date = dayjs(this._minDate + milliseconds);
     return date.format(this.dateFormat);
   }
   translateDateToPosition(date) {
     const milliseconds = dayjs(date).valueOf();
     if (!milliseconds) {
-      return DATE_PARSING_ERROR;
+      return null;
     }
-    return this.sliderWidth + (milliseconds - this._minDate) * this._histWidth / this.dateRange();
+    return this.sliderWidth + (milliseconds - this._minDate) * this._histWidth / this.dateRange;
   }
   handleDateInput(e) {
     const target = e.currentTarget;
     const newX = this.translateDateToPosition(target.value);
     if (target.id === "date-min") {
-      if (newX !== DATE_PARSING_ERROR) {
+      if (newX) {
         this.setLeftSlider(newX);
       }
       target.value = this.translatePositionToDate(this._leftSliderX);
     } else {
-      if (newX !== DATE_PARSING_ERROR) {
+      if (newX) {
         this.setRightSlider(newX);
       }
       target.value = this.translatePositionToDate(this._rightSliderX);
@@ -246,25 +251,28 @@ export class DateRangePicker extends LitElement {
     return html`
       <input
         id="date-${kind}"
-        placeholder="${kind} date"
+        placeholder="${DATE_FORMAT}"
         type="text"
         @change="${this.handleDateInput}"
         .value="${this.translatePositionToDate(x)}"
       />
     `;
   }
-  renderTooltipStyleUpdates() {
+  renderTooltip() {
     return html`
       <style>
         #tooltip {
           width: ${this.tooltipWidth}px;
           height: ${this.tooltipHeight}px;
           top: ${-9 - this.tooltipHeight}px;
+          left: ${this.tooltipOffset}px;
+          display: ${this.tooltipDisplay};
         }
         #tooltip:after {
           left: ${this.tooltipWidth / 2}px;
         }
       </style>
+      <div id="tooltip">${this.tooltipContent}</div>
     `;
   }
   render() {
@@ -272,9 +280,8 @@ export class DateRangePicker extends LitElement {
       return html`no data`;
     }
     return html`
-      <div id="container" style="width: ${this.width}px">
-        ${this.renderTooltipStyleUpdates()}
-        <div id="tooltip"></div>
+      <div id="container" class="noselect" style="width: ${this.width}px">
+        ${this.renderTooltip()}
         <svg
           width="${this.width}"
           height="${this.height}"
@@ -299,13 +306,21 @@ DateRangePicker.styles = css`
       touch-action: none;
       position: relative;
     }
+    /* prevent selection from interfering with tooltip, especially on mobile */
+    /* https://stackoverflow.com/a/4407335/1163042 */
+    .noselect {
+      -webkit-touch-callout: none; /* iOS Safari */
+      -webkit-user-select: none; /* Safari */
+      -moz-user-select: none; /* Old versions of Firefox */
+      -ms-user-select: none; /* Internet Explorer/Edge */
+      user-select: none; /* current Chrome, Edge, Opera and Firefox */
+    }
     .bar:hover {
       fill-opacity: 0.7;
     }
     /****** histogram ********/
     #tooltip {
       position: absolute;
-      display: none;
       background: ${tooltipBackgroundColor};
       color: ${tooltipTextColor};
       text-align: center;
@@ -367,14 +382,20 @@ __decorate([
   property({type: Number})
 ], DateRangePicker.prototype, "tooltipHeight", 2);
 __decorate([
+  property({type: Number})
+], DateRangePicker.prototype, "tooltipOffset", 2);
+__decorate([
+  property({type: String})
+], DateRangePicker.prototype, "tooltipContent", 2);
+__decorate([
+  property({type: String})
+], DateRangePicker.prototype, "tooltipDisplay", 2);
+__decorate([
   property({type: String})
 ], DateRangePicker.prototype, "dateFormat", 2);
 __decorate([
   property({type: Object})
 ], DateRangePicker.prototype, "data", 2);
-__decorate([
-  property({type: Object})
-], DateRangePicker.prototype, "currentSlider", 2);
 __decorate([
   property({type: Number})
 ], DateRangePicker.prototype, "_leftSliderX", 2);
