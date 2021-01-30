@@ -8,6 +8,7 @@ import {
   property,
   query,
 } from 'lit-element';
+import { nothing } from 'lit-html';
 import dayjs from 'dayjs/esm/index.js';
 
 // these values can be overridden via the component's HTML (camelCased) attributes
@@ -18,8 +19,7 @@ const TOOLTIP_WIDTH = 125;
 const TOOLTIP_HEIGHT = 30;
 const DATE_FORMAT = 'M/D/YYYY';
 
-// these constants are not set up to be overridden
-const DATE_PARSING_ERROR = -1;
+// this constant is not set up to be overridden
 const SLIDER_CORNER_SIZE = 4;
 
 // these CSS custom props can be overridden from the HTML that is invoking this component
@@ -59,6 +59,11 @@ export class DateRangePicker extends LitElement {
   @property({ type: Number }) sliderWidth = SLIDER_WIDTH;
   @property({ type: Number }) tooltipWidth = TOOLTIP_WIDTH;
   @property({ type: Number }) tooltipHeight = TOOLTIP_HEIGHT;
+  @property({ type: Number }) tooltipOffset = 0;
+  @property({ type: String }) tooltipContent:
+    | TemplateResult
+    | typeof nothing = nothing;
+  @property({ type: String }) tooltipDisplay: 'block' | 'none' = 'none';
   @property({ type: String }) dateFormat = DATE_FORMAT;
   @property({ type: Object }) data?: HistogramInputData;
   @property({ type: Object }) currentSlider?: SVGRectElement;
@@ -102,7 +107,6 @@ export class DateRangePicker extends LitElement {
     /****** histogram ********/
     #tooltip {
       position: absolute;
-      display: none;
       background: ${tooltipBackgroundColor};
       color: ${tooltipTextColor};
       text-align: center;
@@ -167,7 +171,7 @@ export class DateRangePicker extends LitElement {
     const minValue = Math.min(...this.data.bins);
     const maxValue = Math.max(...this.data.bins);
     const valueScale = this.height / Math.log1p(maxValue - minValue);
-    const dateScale = this.dateRange() / this._numBins;
+    const dateScale = this.dateRange / this._numBins;
     return this.data.bins.map((v: number, i: number) => {
       return {
         value: v,
@@ -182,7 +186,7 @@ export class DateRangePicker extends LitElement {
     });
   }
 
-  dateRange(): number {
+  get dateRange(): number {
     return this._maxDate - this._minDate;
   }
 
@@ -194,16 +198,20 @@ export class DateRangePicker extends LitElement {
     const x = target.x.baseVal.value + this.sliderWidth / 2;
     const data = target.dataset;
     const itemsText = `item${data.numItems !== '1' ? 's' : ''}`;
-    const tooltipOffset =
+
+    this.tooltipOffset =
       x + (this._binWidth - this.sliderWidth - this.tooltipWidth) / 2;
-    this.tooltip.style.left = `${tooltipOffset}px`;
-    this.tooltip.innerHTML = `${data.numItems} ${itemsText}<br>${data.binStart} - ${data.binEnd}`;
-    this.tooltip.style.display = 'block';
+
+    this.tooltipContent = html`
+      ${data.numItems} ${itemsText}<br />
+      ${data.binStart} - ${data.binEnd}
+    `;
+    this.tooltipDisplay = 'block';
   }
 
   hideTooltip(): void {
-    this.tooltip.style.display = 'none';
-    this.tooltip.innerHTML = '';
+    this.tooltipContent = nothing;
+    this.tooltipDisplay = 'none';
   }
 
   // use arrow functions (rather than standard JS class instance methods) so
@@ -268,21 +276,21 @@ export class DateRangePicker extends LitElement {
 
   translatePositionToDate(x: number): string {
     const milliseconds =
-      ((x - this.sliderWidth) * this.dateRange()) / this._histWidth;
+      ((x - this.sliderWidth) * this.dateRange) / this._histWidth;
     const date = dayjs(this._minDate + milliseconds);
     return date.format(this.dateFormat);
   }
 
-  translateDateToPosition(date: string): number {
+  translateDateToPosition(date: string): number | null {
     const milliseconds: number | undefined = dayjs(date).valueOf();
     if (!milliseconds) {
-      return DATE_PARSING_ERROR;
+      return null;
     }
     // translate where we are within the date range into what the new x-position
     // of the slider should be
     return (
       this.sliderWidth +
-      ((milliseconds - this._minDate) * this._histWidth) / this.dateRange()
+      ((milliseconds - this._minDate) * this._histWidth) / this.dateRange
     );
   }
 
@@ -290,12 +298,12 @@ export class DateRangePicker extends LitElement {
     const target = e.currentTarget as HTMLInputElement;
     const newX = this.translateDateToPosition(target.value);
     if ((target.id as InputIds) === 'date-min') {
-      if (newX !== DATE_PARSING_ERROR) {
+      if (newX) {
         this.setLeftSlider(newX);
       }
       target.value = this.translatePositionToDate(this._leftSliderX);
     } else {
-      if (newX !== DATE_PARSING_ERROR) {
+      if (newX) {
         this.setRightSlider(newX);
       }
       target.value = this.translatePositionToDate(this._rightSliderX);
@@ -399,18 +407,21 @@ export class DateRangePicker extends LitElement {
     `;
   }
 
-  renderTooltipStyleUpdates(): TemplateResult {
+  renderTooltip(): TemplateResult {
     return html`
       <style>
         #tooltip {
           width: ${this.tooltipWidth}px;
           height: ${this.tooltipHeight}px;
           top: ${-9 - this.tooltipHeight}px;
+          left: ${this.tooltipOffset}px;
+          display: ${this.tooltipDisplay};
         }
         #tooltip:after {
           left: ${this.tooltipWidth / 2}px;
         }
       </style>
+      <div id="tooltip">${this.tooltipContent}</div>
     `;
   }
 
@@ -420,8 +431,7 @@ export class DateRangePicker extends LitElement {
     }
     return html`
       <div id="container" class="noselect" style="width: ${this.width}px">
-        ${this.renderTooltipStyleUpdates()}
-        <div id="tooltip"></div>
+        ${this.renderTooltip()}
         <svg
           width="${this.width}"
           height="${this.height}"

@@ -208,16 +208,19 @@ describe('DateRangePicker', () => {
 
     // hover
     bars[0].dispatchEvent(new PointerEvent('pointerenter'));
+    await aTimeout(20);
     expect(tooltip.innerText).to.match(/^33 items\n1\/1\/1900 - 4\/23\/1940/);
-    expect(tooltip.style.display).to.eq('block');
+    expect(getComputedStyle(tooltip).display).to.eq('block');
 
     // leave
     bars[0].dispatchEvent(new PointerEvent('pointerleave'));
-    expect(tooltip.style.display).to.eq('none');
+    await aTimeout(20);
+    expect(getComputedStyle(tooltip).display).to.eq('none');
     expect(tooltip.innerText).to.eq('');
 
     // ensure singular item is not pluralized
     bars[1].dispatchEvent(new PointerEvent('pointerenter'));
+    await aTimeout(20);
     expect(tooltip.innerText).to.match(/^1 item\n4\/23\/1940 - 8\/13\/1980/);
   });
 
