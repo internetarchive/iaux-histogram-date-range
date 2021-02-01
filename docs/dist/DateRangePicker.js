@@ -13,11 +13,11 @@ import {
   html,
   svg,
   css,
+  internalProperty,
   LitElement,
   property,
   query
 } from "../_snowpack/pkg/lit-element.js";
-import {nothing} from "../_snowpack/pkg/lit-html.js";
 import dayjs from "../_snowpack/pkg/dayjs/esm/index.js";
 const WIDTH = 180;
 const HEIGHT = 40;
@@ -44,12 +44,12 @@ export class DateRangePicker extends LitElement {
     this.sliderWidth = SLIDER_WIDTH;
     this.tooltipWidth = TOOLTIP_WIDTH;
     this.tooltipHeight = TOOLTIP_HEIGHT;
-    this.tooltipOffset = 0;
-    this.tooltipContent = nothing;
-    this.tooltipDisplay = "none";
     this.dateFormat = DATE_FORMAT;
-    this._leftSliderX = 0;
-    this._rightSliderX = 0;
+    this.minSliderX = 0;
+    this.maxSliderX = 0;
+    this.tooltipOffset = 0;
+    this.tooltipContent = "";
+    this.tooltipDisplay = "none";
     this._minDate = 0;
     this._maxDate = 0;
     this._dragOffset = 0;
@@ -74,12 +74,12 @@ export class DateRangePicker extends LitElement {
     this.move = (e) => {
       const newX = e.offsetX - this._dragOffset;
       const slider = this._currentSlider;
-      return slider.id === "slider-min" ? this.setLeftSlider(newX) : this.setRightSlider(newX);
+      return slider.id === "slider-min" ? this.setMinSlider(newX) : this.setMaxSlider(newX);
     };
   }
   firstUpdated() {
-    this._leftSliderX = this.sliderWidth;
-    this._rightSliderX = this.width - this.sliderWidth;
+    this.minSliderX = this.sliderWidth;
+    this.maxSliderX = this.width - this.sliderWidth;
     this._minDate = dayjs(this.data?.minDate).valueOf();
     this._maxDate = dayjs(this.data?.maxDate).valueOf();
     this._histWidth = this.width - this.sliderWidth * 2;
@@ -123,24 +123,24 @@ export class DateRangePicker extends LitElement {
     this.tooltipDisplay = "block";
   }
   hideTooltip() {
-    this.tooltipContent = nothing;
+    this.tooltipContent = "";
     this.tooltipDisplay = "none";
   }
   setDragOffset(e) {
     this._currentSlider = e.currentTarget;
-    const sliderX = this._currentSlider.id === "slider-min" ? this._leftSliderX : this._rightSliderX;
+    const sliderX = this._currentSlider.id === "slider-min" ? this.minSliderX : this.maxSliderX;
     this._dragOffset = e.offsetX - sliderX;
     if (this._dragOffset > this.sliderWidth || this._dragOffset < -this.sliderWidth) {
       this._dragOffset = 0;
     }
   }
-  setLeftSlider(newX) {
+  setMinSlider(newX) {
     const toSet = Math.max(newX, this.sliderWidth);
-    this._leftSliderX = Math.min(toSet, this._rightSliderX);
+    this.minSliderX = Math.min(toSet, this.maxSliderX);
   }
-  setRightSlider(newX) {
-    const toSet = Math.max(newX, this._leftSliderX);
-    this._rightSliderX = Math.min(toSet, this.width - this.sliderWidth);
+  setMaxSlider(newX) {
+    const toSet = Math.max(newX, this.minSliderX);
+    this.maxSliderX = Math.min(toSet, this.width - this.sliderWidth);
   }
   translatePositionToDate(x) {
     const milliseconds = (x - this.sliderWidth) * this.dateRange / this._histWidth;
@@ -154,40 +154,54 @@ export class DateRangePicker extends LitElement {
     }
     return this.sliderWidth + (milliseconds - this._minDate) * this._histWidth / this.dateRange;
   }
-  handleDateInput(e) {
+  handleMinDateInput(e) {
     const target = e.currentTarget;
     const newX = this.translateDateToPosition(target.value);
-    if (target.id === "date-min") {
-      if (newX) {
-        this.setLeftSlider(newX);
-      }
-      target.value = this.translatePositionToDate(this._leftSliderX);
-    } else {
-      if (newX) {
-        this.setRightSlider(newX);
-      }
-      target.value = this.translatePositionToDate(this._rightSliderX);
+    if (newX) {
+      this.setMinSlider(newX);
     }
+    target.value = this.minInputValue;
   }
-  renderSlider(id) {
-    const x = id === "slider-min" ? this._leftSliderX : this._rightSliderX;
-    const k = id === "slider-min" ? 1 : -1;
+  handleMaxDateInput(e) {
+    const target = e.currentTarget;
+    const newX = this.translateDateToPosition(target.value);
+    if (newX) {
+      this.setMaxSlider(newX);
+    }
+    target.value = this.maxInputValue;
+  }
+  get minInputValue() {
+    return this.translatePositionToDate(this.minSliderX);
+  }
+  get maxInputValue() {
+    return this.translatePositionToDate(this.maxSliderX);
+  }
+  get minSliderTemplate() {
     const c = SLIDER_CORNER_SIZE;
-    const sliderShape = id === "slider-min" ? `
-            M${x},0
+    const sliderShape = `
+            M${this.minSliderX},0
             h-${this.sliderWidth - c}
             q-${c},0 -${c},${c}
             v${this.height - c * 2}
             q0,${c} ${c},${c}
             h${this.sliderWidth - c}
-          ` : `
-            M${x},0
+          `;
+    return this.generateSliderSVG(this.minSliderX, "slider-min", sliderShape);
+  }
+  get maxSliderTemplate() {
+    const c = SLIDER_CORNER_SIZE;
+    const sliderShape = `
+            M${this.maxSliderX},0
             h${this.sliderWidth - c}
             q${c},0 ${c},${c}
             v${this.height - c * 2}
             q0,${c} -${c},${c}
             h-${this.sliderWidth - c}
           `;
+    return this.generateSliderSVG(this.maxSliderX, "slider-max", sliderShape);
+  }
+  generateSliderSVG(sliderPositionX, id, sliderShape) {
+    const k = id === "slider-min" ? 1 : -1;
     return svg`
     <svg
       id="${id}"
@@ -195,14 +209,14 @@ export class DateRangePicker extends LitElement {
     >
       <path d="${sliderShape} z" fill="${sliderFill}" />
       <rect
-        x="${x - this.sliderWidth * k + this.sliderWidth * 0.4 * k}"
+        x="${sliderPositionX - this.sliderWidth * k + this.sliderWidth * 0.4 * k}"
         y="${this.height / 3}"
         width="1"
         height="${this.height / 3}"
         fill="white"
       />
       <rect
-        x="${x - this.sliderWidth * k + this.sliderWidth * 0.6 * k}"
+        x="${sliderPositionX - this.sliderWidth * k + this.sliderWidth * 0.6 * k}"
         y="${this.height / 3}"
         width="1"
         height="${this.height / 3}"
@@ -211,20 +225,17 @@ export class DateRangePicker extends LitElement {
     </svg>
     `;
   }
-  barIncluded(x) {
-    return x >= this._leftSliderX && x <= this._rightSliderX;
-  }
-  renderSelectedRange() {
+  get selectedRangeTemplate() {
     return svg`
       <rect
-        x="${this._leftSliderX}"
+        x="${this.minSliderX}"
         y="0"
-        width="${this._rightSliderX - this._leftSliderX}"
+        width="${this.maxSliderX - this.minSliderX}"
         height="${this.height}"
         fill="${selectedRangeFill}"
       />`;
   }
-  renderHistogram() {
+  get histogramTemplate() {
     const xScale = this._histWidth / this._numBins;
     const barWidth = xScale - 1;
     let x = this.sliderWidth;
@@ -238,7 +249,7 @@ export class DateRangePicker extends LitElement {
           height="${data.height}"
           @pointerenter="${this.showTooltip}"
           @pointerleave="${this.hideTooltip}"
-          fill="${this.barIncluded(x) ? barIncludedFill : barExcludedFill}"
+          fill="${x >= this.minSliderX && x <= this.maxSliderX ? barIncludedFill : barExcludedFill}"
           data-num-items="${data.value}"
           data-bin-start="${data.binStart}"
           data-bin-end="${data.binEnd}"
@@ -247,18 +258,29 @@ export class DateRangePicker extends LitElement {
       return bar;
     });
   }
-  renderInput(kind, x) {
+  get minInputTemplate() {
     return html`
       <input
-        id="date-${kind}"
+        id="date-min"
         placeholder="${DATE_FORMAT}"
         type="text"
-        @change="${this.handleDateInput}"
-        .value="${this.translatePositionToDate(x)}"
+        @change="${this.handleMinDateInput}"
+        .value="${this.minInputValue}"
       />
     `;
   }
-  renderTooltip() {
+  get maxInputTemplate() {
+    return html`
+      <input
+        id="date-max"
+        placeholder="${DATE_FORMAT}"
+        type="text"
+        @change="${this.handleMaxDateInput}"
+        .value="${this.maxInputValue}"
+      />
+    `;
+  }
+  get tooltipTemplate() {
     return html`
       <style>
         #tooltip {
@@ -281,20 +303,20 @@ export class DateRangePicker extends LitElement {
     }
     return html`
       <div id="container" class="noselect" style="width: ${this.width}px">
-        ${this.renderTooltip()}
+        ${this.tooltipTemplate}
         <svg
           width="${this.width}"
           height="${this.height}"
           @pointerleave="${this.drop}"
         >
-          ${this.renderSelectedRange()}
-          <svg id="histogram">${this.renderHistogram()}</svg>
-          ${this.renderSlider("slider-min")} ${this.renderSlider("slider-max")}
+          ${this.selectedRangeTemplate}
+          <svg id="histogram">${this.histogramTemplate}</svg>
+          ${this.minSliderTemplate} ${this.maxSliderTemplate}
         </svg>
         <div id="inputs">
-          ${this.renderInput("min", this._leftSliderX)}
+          ${this.minInputTemplate}
           <div class="dash">-</div>
-          ${this.renderInput("max", this._rightSliderX)}
+          ${this.maxInputTemplate}
         </div>
       </div>
     `;
@@ -355,7 +377,7 @@ DateRangePicker.styles = css`
     }
     #inputs .dash {
       position: relative;
-      bottom: 1px;
+      bottom: -1px;
     }
     input {
       width: ${inputWidth};
@@ -382,26 +404,26 @@ __decorate([
   property({type: Number})
 ], DateRangePicker.prototype, "tooltipHeight", 2);
 __decorate([
-  property({type: Number})
-], DateRangePicker.prototype, "tooltipOffset", 2);
-__decorate([
-  property({type: String})
-], DateRangePicker.prototype, "tooltipContent", 2);
-__decorate([
-  property({type: String})
-], DateRangePicker.prototype, "tooltipDisplay", 2);
-__decorate([
   property({type: String})
 ], DateRangePicker.prototype, "dateFormat", 2);
 __decorate([
   property({type: Object})
 ], DateRangePicker.prototype, "data", 2);
 __decorate([
-  property({type: Number})
-], DateRangePicker.prototype, "_leftSliderX", 2);
+  internalProperty()
+], DateRangePicker.prototype, "minSliderX", 2);
 __decorate([
-  property({type: Number})
-], DateRangePicker.prototype, "_rightSliderX", 2);
+  internalProperty()
+], DateRangePicker.prototype, "maxSliderX", 2);
+__decorate([
+  internalProperty()
+], DateRangePicker.prototype, "tooltipOffset", 2);
+__decorate([
+  internalProperty()
+], DateRangePicker.prototype, "tooltipContent", 2);
+__decorate([
+  internalProperty()
+], DateRangePicker.prototype, "tooltipDisplay", 2);
 __decorate([
   query("#tooltip")
 ], DateRangePicker.prototype, "tooltip", 2);
