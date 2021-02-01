@@ -8,7 +8,6 @@ import {
   property,
   query,
 } from 'lit-element';
-import { nothing } from 'lit-html';
 import dayjs from 'dayjs/esm/index.js';
 
 // these values can be overridden via the component's HTML (camelCased) attributes
@@ -60,9 +59,7 @@ export class DateRangePicker extends LitElement {
   @property({ type: Number }) tooltipWidth = TOOLTIP_WIDTH;
   @property({ type: Number }) tooltipHeight = TOOLTIP_HEIGHT;
   @property({ type: Number }) tooltipOffset = 0;
-  @property({ type: String }) tooltipContent:
-    | TemplateResult
-    | typeof nothing = nothing;
+  @property({ type: String }) tooltipContent: TemplateResult | '' = '';
   @property({ type: String }) tooltipDisplay: 'block' | 'none' = 'none';
   @property({ type: String }) dateFormat = DATE_FORMAT;
   @property({ type: Object }) data?: HistogramInputData;
@@ -210,7 +207,7 @@ export class DateRangePicker extends LitElement {
   }
 
   hideTooltip(): void {
-    this.tooltipContent = nothing;
+    this.tooltipContent = '';
     this.tooltipDisplay = 'none';
   }
 
