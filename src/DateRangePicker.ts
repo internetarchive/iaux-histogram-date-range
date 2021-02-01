@@ -308,9 +308,18 @@ export class DateRangePicker extends LitElement {
   }
 
   renderSlider(id: SliderIds): SVGTemplateResult {
+    // horizontal position of the slider that is being rendered
     const x = id === 'slider-min' ? this._leftSliderX : this._rightSliderX;
+
+    // tracks whether the curved part of the slider is facing towards the
+    // left (1) or the right (-1)
     const k = id === 'slider-min' ? 1 : -1;
+
+    // width/height in pixels of curved part of the sliders (like
+    // border-radius); used as part of a SVG quadratic curve. see
+    // https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths#curve_commands
     const c = SLIDER_CORNER_SIZE;
+
     const sliderShape =
       id === 'slider-min'
         ? `
