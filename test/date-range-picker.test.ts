@@ -55,7 +55,7 @@ describe('DateRangePicker', () => {
     const el = await createCustomElementInHTMLContainer();
 
     /* -------------------------- minimum (left) slider ------------------------- */
-    expect(el._leftSliderX).to.eq(SLIDER_WIDTH);
+    expect(el.minSliderX).to.eq(SLIDER_WIDTH);
     const minDateInput = el.shadowRoot?.querySelector(
       '#date-min'
     ) as HTMLInputElement;
@@ -63,17 +63,21 @@ describe('DateRangePicker', () => {
     // valid min date
     minDateInput.value = '1950';
     minDateInput.dispatchEvent(new Event('change'));
-    expect(Math.floor(el._leftSliderX)).to.eq(84);
+    await aTimeout(20);
+
+    expect(Math.floor(el.minSliderX)).to.eq(84);
     expect(minDateInput.value).to.eq('1/1/1950');
 
     // attempt to set date earlier than first item
     minDateInput.value = 'October 1, 1850';
     minDateInput.dispatchEvent(new Event('change'));
-    expect(Math.floor(el._leftSliderX)).to.eq(SLIDER_WIDTH); // move all the way to left
+    await aTimeout(20);
+
+    expect(Math.floor(el.minSliderX)).to.eq(SLIDER_WIDTH); // move all the way to left
     expect(minDateInput.value).to.eq('1/1/1900'); // set to date of first item
 
     /* -------------------------- maximum (right) slider ------------------------- */
-    expect(el._rightSliderX).to.eq(WIDTH - SLIDER_WIDTH);
+    expect(el.maxSliderX).to.eq(WIDTH - SLIDER_WIDTH);
     const maxDateInput = el.shadowRoot?.querySelector(
       '#date-max'
     ) as HTMLInputElement;
@@ -81,13 +85,17 @@ describe('DateRangePicker', () => {
     // set valid max date
     maxDateInput.value = 'March 12 1975';
     maxDateInput.dispatchEvent(new Event('change'));
-    expect(Math.floor(el._rightSliderX)).to.eq(121);
+    await aTimeout(20);
+
+    expect(Math.floor(el.maxSliderX)).to.eq(121);
     expect(maxDateInput.value).to.eq('3/12/1975');
 
     // attempt to set date later than last item
     maxDateInput.value = 'Dec 31 2199';
     maxDateInput.dispatchEvent(new Event('change'));
-    expect(Math.floor(el._rightSliderX)).to.eq(WIDTH - SLIDER_WIDTH); // all the way to right
+    await aTimeout(20);
+
+    expect(Math.floor(el.maxSliderX)).to.eq(WIDTH - SLIDER_WIDTH); // all the way to right
     expect(maxDateInput.value).to.eq('12/4/2020'); // date of last item
   });
 
@@ -101,14 +109,17 @@ describe('DateRangePicker', () => {
 
     minDateInput.value = 'May 17, 1961';
     minDateInput.dispatchEvent(new Event('change'));
-    expect(Math.floor(el._leftSliderX)).to.eq(101);
+    await aTimeout(20);
+
+    expect(Math.floor(el.minSliderX)).to.eq(101);
     expect(minDateInput.value).to.eq('5/17/1961');
 
     // enter invalid value
     minDateInput.value = 'invalid';
     minDateInput.dispatchEvent(new Event('change'));
+    await aTimeout(20);
 
-    expect(Math.floor(el._leftSliderX)).to.eq(101); // does not move
+    expect(Math.floor(el.minSliderX)).to.eq(101); // does not move
     expect(minDateInput.value).to.eq('5/17/1961'); // resets back to previous date
 
     /* -------------------------- maximum (right) slider ------------------------- */
@@ -117,14 +128,14 @@ describe('DateRangePicker', () => {
     ) as HTMLInputElement;
 
     // initial values
-    expect(el._rightSliderX).to.eq(WIDTH - SLIDER_WIDTH);
+    expect(el.maxSliderX).to.eq(WIDTH - SLIDER_WIDTH);
     expect(maxDateInput.value).to.eq('12/4/2020');
 
     // enter invalid value
     maxDateInput.value = 'Abc 12, 1YYY';
     maxDateInput.dispatchEvent(new Event('change'));
 
-    expect(Math.floor(el._rightSliderX)).to.eq(WIDTH - SLIDER_WIDTH); // does not move
+    expect(Math.floor(el.maxSliderX)).to.eq(WIDTH - SLIDER_WIDTH); // does not move
     expect(maxDateInput.value).to.eq('12/4/2020'); // resets back to previous date
   });
 
