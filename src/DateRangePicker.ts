@@ -141,7 +141,7 @@ export class DateRangePicker extends LitElement {
     }
     #inputs .dash {
       position: relative;
-      bottom: 1px;
+      bottom: -1px;
     }
     input {
       width: ${inputWidth};
