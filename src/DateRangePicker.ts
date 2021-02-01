@@ -2,6 +2,7 @@ import {
   html,
   svg,
   css,
+  internalProperty,
   LitElement,
   TemplateResult,
   SVGTemplateResult,
@@ -58,28 +59,27 @@ export class DateRangePicker extends LitElement {
   @property({ type: Number }) sliderWidth = SLIDER_WIDTH;
   @property({ type: Number }) tooltipWidth = TOOLTIP_WIDTH;
   @property({ type: Number }) tooltipHeight = TOOLTIP_HEIGHT;
-  @property({ type: Number }) tooltipOffset = 0;
-  @property({ type: String }) tooltipContent: TemplateResult | '' = '';
-  @property({ type: String }) tooltipDisplay: 'block' | 'none' = 'none';
   @property({ type: String }) dateFormat = DATE_FORMAT;
   @property({ type: Object }) data?: HistogramInputData;
 
-  // these properties are intended to be private
-  @property({ type: Number }) _leftSliderX: number = 0;
-  @property({ type: Number }) _rightSliderX: number = 0;
+  @internalProperty() _leftSliderX: number = 0;
+  @internalProperty() _rightSliderX: number = 0;
+  @internalProperty() tooltipOffset = 0;
+  @internalProperty() tooltipContent: TemplateResult | '' = '';
+  @internalProperty() tooltipDisplay: 'block' | 'none' = 'none';
 
   @query('#tooltip') tooltip!: HTMLDivElement;
   @query('#container') container!: HTMLDivElement;
 
   // these properties don't need to be tracked for changes
-  _minDate: number = 0;
-  _maxDate: number = 0;
-  _dragOffset: number = 0;
-  _histWidth: number = 0;
-  _numBins: number = 0;
-  _binWidth: number = 0;
-  _currentSlider?: SVGRectElement;
-  _histData: HistogramItem[] = [];
+  private _minDate: number = 0;
+  private _maxDate: number = 0;
+  private _dragOffset: number = 0;
+  private _histWidth: number = 0;
+  private _numBins: number = 0;
+  private _binWidth: number = 0;
+  private _currentSlider?: SVGRectElement;
+  private _histData: HistogramItem[] = [];
 
   /* eslint-enable lines-between-class-members */
 
