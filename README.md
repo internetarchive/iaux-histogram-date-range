@@ -9,17 +9,26 @@ CodeCov: [![codecov](https://codecov.io/gh/internetarchive/iaux-histogram-date-r
 ## Installation
 
 ```bash
-npm i histogram-date-range
+npm i @internetarchive/histogram-date-range
 ```
 
 ## Usage
 
 ```html
 <script type="module">
-  import 'histogram-date-range/histogram-date-range.js';
+  import 'histogram-date-range/dist/src/histogram-date-range.js';
 </script>
-
-<histogram-date-range></histogram-date-range>
+<histogram-date-range
+  width="300"
+  height="50"
+  tooltipWidth="140"
+  dateFormat="DD MMM YYYY"
+  style="
+    --dateRangePickerTooltipFontSize: 1rem;
+    --dateRangePickerInputWidth: 85px;
+  "
+  data='{ "minDate": "May 1, 1972", "maxDate": "12/21/1980","bins": [ 85, 25, 200, 0, 0, 34, 0, 2, 5, 10, 0, 56, 10, 45, 100, 70, 50]}'
+></histogram-date-range>
 ```
 
 ## Linting with ESLint, Prettier, and Types
