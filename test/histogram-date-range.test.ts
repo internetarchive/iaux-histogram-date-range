@@ -1,8 +1,8 @@
 /* eslint-disable no-debugger */
 import { html, fixture, expect, aTimeout } from '@open-wc/testing';
 
-import { HistogramDateRange } from '../src/HistogramDateRange.js';
-import '../src/histogram-date-range.js';
+import { HistogramDateRange } from '../src/histogram-date-range';
+import '../src/histogram-date-range';
 
 const SLIDER_WIDTH = 10;
 const WIDTH = 200;
