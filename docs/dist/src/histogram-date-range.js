@@ -10,14 +10,14 @@ var __decorate = (decorators, target, key, kind) => {
   return result;
 };
 import {
-  html,
-  svg,
   css,
+  customElement,
+  html,
   internalProperty,
   LitElement,
-  customElement,
   property,
-  query
+  query,
+  svg
 } from "../../_snowpack/pkg/lit-element.js";
 import dayjs from "../../_snowpack/pkg/dayjs/esm/index.js";
 const WIDTH = 180;
@@ -49,8 +49,8 @@ export let HistogramDateRange = class extends LitElement {
     this.minSliderX = 0;
     this.maxSliderX = 0;
     this.tooltipOffset = 0;
-    this.tooltipContent = "";
-    this.tooltipDisplay = "none";
+    this.tooltipVisible = false;
+    this.isDragging = false;
     this._minDate = 0;
     this._maxDate = 0;
     this._dragOffset = 0;
@@ -61,13 +61,13 @@ export let HistogramDateRange = class extends LitElement {
     this.drag = (e) => {
       e.preventDefault();
       this.setDragOffset(e);
-      this.container.classList.add("dragging");
+      this.isDragging = true;
       window.addEventListener("pointermove", this.move);
       window.addEventListener("pointerup", this.drop);
       window.addEventListener("pointercancel", this.drop);
     };
     this.drop = () => {
-      this.container.classList.remove("dragging");
+      this.isDragging = false;
       window.removeEventListener("pointermove", this.move);
       window.removeEventListener("pointerup", this.drop);
       window.removeEventListener("pointercancel", this.drop);
@@ -78,25 +78,27 @@ export let HistogramDateRange = class extends LitElement {
       return slider.id === "slider-min" ? this.setMinSlider(newX) : this.setMaxSlider(newX);
     };
   }
-  firstUpdated() {
+  updated(changedProps) {
+    if (changedProps.has("data")) {
+      this.handleDataUpdate();
+    }
+  }
+  handleDataUpdate() {
+    if (!this.data?.bins) {
+      return;
+    }
     this.minSliderX = this.sliderWidth;
     this.maxSliderX = this.width - this.sliderWidth;
-    this._minDate = dayjs(this.data?.minDate).valueOf();
-    this._maxDate = dayjs(this.data?.maxDate).valueOf();
     this._histWidth = this.width - this.sliderWidth * 2;
-    this._numBins = this.data?.bins?.length ?? 1;
+    this._minDate = dayjs(this.data.minDate).valueOf();
+    this._maxDate = dayjs(this.data.maxDate).valueOf();
+    this._numBins = this.data.bins?.length ?? 1;
     this._binWidth = this._histWidth / this._numBins;
-    this._histData = this.generateHistData();
-  }
-  generateHistData() {
-    if (!this.data) {
-      return [];
-    }
     const minValue = Math.min(...this.data.bins);
     const maxValue = Math.max(...this.data.bins);
     const valueScale = this.height / Math.log1p(maxValue - minValue);
     const dateScale = this.dateRange / this._numBins;
-    return this.data.bins.map((v, i) => {
+    this._histData = this.data.bins.map((v, i) => {
       return {
         value: v,
         height: Math.floor(Math.log1p(v) * valueScale),
@@ -104,28 +106,29 @@ export let HistogramDateRange = class extends LitElement {
         binEnd: `${dayjs((i + 1) * dateScale + this._minDate).format(this.dateFormat)}`
       };
     });
+    this.requestUpdate();
   }
   get dateRange() {
     return this._maxDate - this._minDate;
   }
   showTooltip(e) {
-    if (Array.from(this.container.classList).includes("dragging")) {
+    if (this.isDragging) {
       return;
     }
     const target = e.currentTarget;
     const x = target.x.baseVal.value + this.sliderWidth / 2;
-    const data = target.dataset;
-    const itemsText = `item${data.numItems !== "1" ? "s" : ""}`;
+    const dataset = target.dataset;
+    const itemsText = `item${dataset.numItems !== "1" ? "s" : ""}`;
     this.tooltipOffset = x + (this._binWidth - this.sliderWidth - this.tooltipWidth) / 2;
     this.tooltipContent = html`
-      ${data.numItems} ${itemsText}<br />
-      ${data.binStart} - ${data.binEnd}
+      ${dataset.numItems} ${itemsText}<br />
+      ${dataset.binStart} - ${dataset.binEnd}
     `;
-    this.tooltipDisplay = "block";
+    this.tooltipVisible = true;
   }
   hideTooltip() {
-    this.tooltipContent = "";
-    this.tooltipDisplay = "none";
+    this.tooltipContent = void 0;
+    this.tooltipVisible = false;
   }
   setDragOffset(e) {
     this._currentSlider = e.currentTarget;
@@ -289,7 +292,7 @@ export let HistogramDateRange = class extends LitElement {
           height: ${this.tooltipHeight}px;
           top: ${-9 - this.tooltipHeight}px;
           left: ${this.tooltipOffset}px;
-          display: ${this.tooltipDisplay};
+          display: ${this.tooltipVisible ? "block" : "none"};
         }
         #tooltip:after {
           left: ${this.tooltipWidth / 2}px;
@@ -303,7 +306,11 @@ export let HistogramDateRange = class extends LitElement {
       return html`no data`;
     }
     return html`
-      <div id="container" class="noselect" style="width: ${this.width}px">
+      <div
+        id="container"
+        class="noselect ${this.isDragging ? "dragging" : ""}"
+        style="width: ${this.width}px"
+      >
         ${this.tooltipTemplate}
         <svg
           width="${this.width}"
@@ -424,7 +431,10 @@ __decorate([
 ], HistogramDateRange.prototype, "tooltipContent", 2);
 __decorate([
   internalProperty()
-], HistogramDateRange.prototype, "tooltipDisplay", 2);
+], HistogramDateRange.prototype, "tooltipVisible", 2);
+__decorate([
+  internalProperty()
+], HistogramDateRange.prototype, "isDragging", 2);
 __decorate([
   query("#tooltip")
 ], HistogramDateRange.prototype, "tooltip", 2);
