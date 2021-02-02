@@ -3,8 +3,8 @@
 This webcomponent follows the [open-wc](https://github.com/open-wc/open-wc) recommendation.
 
 Travis:
-[![Build Status](https://travis-ci.com/internetarchive/iaux-histogram-date-range.svg?branch=master)](https://travis-ci.com/internetarchive/iaux-histogram-date-range)
-CodeCov: [![codecov](https://codecov.io/gh/internetarchive/iaux-histogram-date-range/branch/master/graph/badge.svg)](https://codecov.io/gh/internetarchive/iaux-histogram-date-range)
+[![Build Status](https://travis-ci.com/internetarchive/iaux-histogram-date-range.svg?branch=main)](https://travis-ci.com/internetarchive/iaux-histogram-date-range)
+CodeCov: [![codecov](https://codecov.io/gh/internetarchive/iaux-histogram-date-range/branch/main/graph/badge.svg)](https://codecov.io/gh/internetarchive/iaux-histogram-date-range)
 
 ## Installation
 
