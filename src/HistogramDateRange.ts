@@ -23,16 +23,16 @@ const DATE_FORMAT = 'M/D/YYYY';
 const SLIDER_CORNER_SIZE = 4;
 
 // these CSS custom props can be overridden from the HTML that is invoking this component
-const sliderFill = 'var(--dateRangePickerSliderFill, #4B65FE)';
-const selectedRangeFill = 'var(--dateRangePickerSelectedRangeFill, #DBE0FF)';
-const barIncludedFill = 'var(--dateRangePickerBarIncludedFill, #2C2C2C)';
-const barExcludedFill = 'var(--dateRangePickerBarExcludedFill, #CCCCCC)';
-const inputBorder = css`var(--dateRangePickerInputBorder, 0.5px solid #2C2C2C)`;
-const inputWidth = css`var(--dateRangePickerInputWidth, 70px)`;
-const inputFontSize = css`var(--dateRangePickerInputFontSize, 1.2rem)`;
-const tooltipBackgroundColor = css`var(--dateRangePickerTooltipBackgroundColor, #2C2C2C)`;
-const tooltipTextColor = css`var(--dateRangePickerTooltipTextColor, #FFFFFF)`;
-const tooltipFontSize = css`var(--dateRangePickerTooltipFontSize, 1.1rem)`;
+const sliderFill = 'var(--histogramDateRangeSliderFill, #4B65FE)';
+const selectedRangeFill = 'var(--histogramDateRangeSelectedRangeFill, #DBE0FF)';
+const barIncludedFill = 'var(--histogramDateRangeBarIncludedFill, #2C2C2C)';
+const barExcludedFill = 'var(--histogramDateRangeBarExcludedFill, #CCCCCC)';
+const inputBorder = css`var(--histogramDateRangeInputBorder, 0.5px solid #2C2C2C)`;
+const inputWidth = css`var(--histogramDateRangeInputWidth, 70px)`;
+const inputFontSize = css`var(--histogramDateRangeInputFontSize, 1.2rem)`;
+const tooltipBackgroundColor = css`var(--histogramDateRangeTooltipBackgroundColor, #2C2C2C)`;
+const tooltipTextColor = css`var(--histogramDateRangeTooltipTextColor, #FFFFFF)`;
+const tooltipFontSize = css`var(--histogramDateRangeTooltipFontSize, 1.1rem)`;
 
 type SliderIds = 'slider-min' | 'slider-max';
 
@@ -49,7 +49,7 @@ interface HistogramItem {
   binEnd: string;
 }
 
-export class DateRangePicker extends LitElement {
+export class HistogramDateRange extends LitElement {
   /* eslint-disable lines-between-class-members */
 
   // these properties are intended to be passed in as attributes
@@ -144,7 +144,7 @@ export class DateRangePicker extends LitElement {
   }
 
   // use arrow functions (rather than standard JS class instance methods) so
-  // that `this` is bound to the DateRangePicker object and not the event
+  // that `this` is bound to the histogramDateRange object and not the event
   // target. for more info see
   // https://lit-element.polymer-project.org/guide/events#using-this-in-event-listeners
   private drag = (e: PointerEvent): void => {

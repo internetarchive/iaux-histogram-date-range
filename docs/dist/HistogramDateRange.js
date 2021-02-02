@@ -26,17 +26,17 @@ const TOOLTIP_WIDTH = 125;
 const TOOLTIP_HEIGHT = 30;
 const DATE_FORMAT = "M/D/YYYY";
 const SLIDER_CORNER_SIZE = 4;
-const sliderFill = "var(--dateRangePickerSliderFill, #4B65FE)";
-const selectedRangeFill = "var(--dateRangePickerSelectedRangeFill, #DBE0FF)";
-const barIncludedFill = "var(--dateRangePickerBarIncludedFill, #2C2C2C)";
-const barExcludedFill = "var(--dateRangePickerBarExcludedFill, #CCCCCC)";
-const inputBorder = css`var(--dateRangePickerInputBorder, 0.5px solid #2C2C2C)`;
-const inputWidth = css`var(--dateRangePickerInputWidth, 70px)`;
-const inputFontSize = css`var(--dateRangePickerInputFontSize, 1.2rem)`;
-const tooltipBackgroundColor = css`var(--dateRangePickerTooltipBackgroundColor, #2C2C2C)`;
-const tooltipTextColor = css`var(--dateRangePickerTooltipTextColor, #FFFFFF)`;
-const tooltipFontSize = css`var(--dateRangePickerTooltipFontSize, 1.1rem)`;
-export class DateRangePicker extends LitElement {
+const sliderFill = "var(--histogramDateRangeSliderFill, #4B65FE)";
+const selectedRangeFill = "var(--histogramDateRangeSelectedRangeFill, #DBE0FF)";
+const barIncludedFill = "var(--histogramDateRangeBarIncludedFill, #2C2C2C)";
+const barExcludedFill = "var(--histogramDateRangeBarExcludedFill, #CCCCCC)";
+const inputBorder = css`var(--histogramDateRangeInputBorder, 0.5px solid #2C2C2C)`;
+const inputWidth = css`var(--histogramDateRangeInputWidth, 70px)`;
+const inputFontSize = css`var(--histogramDateRangeInputFontSize, 1.2rem)`;
+const tooltipBackgroundColor = css`var(--histogramDateRangeTooltipBackgroundColor, #2C2C2C)`;
+const tooltipTextColor = css`var(--histogramDateRangeTooltipTextColor, #FFFFFF)`;
+const tooltipFontSize = css`var(--histogramDateRangeTooltipFontSize, 1.1rem)`;
+export class HistogramDateRange extends LitElement {
   constructor() {
     super(...arguments);
     this.width = WIDTH;
@@ -322,7 +322,7 @@ export class DateRangePicker extends LitElement {
     `;
   }
 }
-DateRangePicker.styles = css`
+HistogramDateRange.styles = css`
     #container {
       margin: 0;
       touch-action: none;
@@ -390,43 +390,43 @@ DateRangePicker.styles = css`
   `;
 __decorate([
   property({type: Number})
-], DateRangePicker.prototype, "width", 2);
+], HistogramDateRange.prototype, "width", 2);
 __decorate([
   property({type: Number})
-], DateRangePicker.prototype, "height", 2);
+], HistogramDateRange.prototype, "height", 2);
 __decorate([
   property({type: Number})
-], DateRangePicker.prototype, "sliderWidth", 2);
+], HistogramDateRange.prototype, "sliderWidth", 2);
 __decorate([
   property({type: Number})
-], DateRangePicker.prototype, "tooltipWidth", 2);
+], HistogramDateRange.prototype, "tooltipWidth", 2);
 __decorate([
   property({type: Number})
-], DateRangePicker.prototype, "tooltipHeight", 2);
+], HistogramDateRange.prototype, "tooltipHeight", 2);
 __decorate([
   property({type: String})
-], DateRangePicker.prototype, "dateFormat", 2);
+], HistogramDateRange.prototype, "dateFormat", 2);
 __decorate([
   property({type: Object})
-], DateRangePicker.prototype, "data", 2);
+], HistogramDateRange.prototype, "data", 2);
 __decorate([
   internalProperty()
-], DateRangePicker.prototype, "minSliderX", 2);
+], HistogramDateRange.prototype, "minSliderX", 2);
 __decorate([
   internalProperty()
-], DateRangePicker.prototype, "maxSliderX", 2);
+], HistogramDateRange.prototype, "maxSliderX", 2);
 __decorate([
   internalProperty()
-], DateRangePicker.prototype, "tooltipOffset", 2);
+], HistogramDateRange.prototype, "tooltipOffset", 2);
 __decorate([
   internalProperty()
-], DateRangePicker.prototype, "tooltipContent", 2);
+], HistogramDateRange.prototype, "tooltipContent", 2);
 __decorate([
   internalProperty()
-], DateRangePicker.prototype, "tooltipDisplay", 2);
+], HistogramDateRange.prototype, "tooltipDisplay", 2);
 __decorate([
   query("#tooltip")
-], DateRangePicker.prototype, "tooltip", 2);
+], HistogramDateRange.prototype, "tooltip", 2);
 __decorate([
   query("#container")
-], DateRangePicker.prototype, "container", 2);
+], HistogramDateRange.prototype, "container", 2);

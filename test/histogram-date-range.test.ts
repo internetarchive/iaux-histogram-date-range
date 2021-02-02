@@ -1,20 +1,20 @@
 /* eslint-disable no-debugger */
 import { html, fixture, expect, aTimeout } from '@open-wc/testing';
 
-import { DateRangePicker } from '../src/DateRangePicker.js';
-import '../src/date-range-picker.js';
+import { HistogramDateRange } from '../src/HistogramDateRange.js';
+import '../src/histogram-date-range.js';
 
 const SLIDER_WIDTH = 10;
 const WIDTH = 200;
 
 const subject = html`
-  <date-range-picker
+  <histogram-date-range
     width="${WIDTH}"
     tooltipWidth="140"
     height="50"
     data='{ "minDate": "1900", "maxDate": "Dec 4, 2020","bins": [ 33, 1, 100] }'
   >
-  </date-range-picker>
+  </histogram-date-range>
 `;
 
 async function createCustomElementInHTMLContainer() {
@@ -37,10 +37,10 @@ async function createCustomElementInHTMLContainer() {
   // https://open-wc.org/docs/testing/helpers/#customize-the-fixture-container
   const parentNode = document.createElement('div');
   parentNode.setAttribute('class', 'container');
-  return fixture<DateRangePicker>(subject, { parentNode });
+  return fixture<HistogramDateRange>(subject, { parentNode });
 }
 
-describe('DateRangePicker', () => {
+describe('HistogramDateRange', () => {
   it('shows scaled histogram bars when provided with data', async () => {
     const el = await createCustomElementInHTMLContainer();
     const bars = (el.shadowRoot?.querySelectorAll(
@@ -257,14 +257,14 @@ describe('DateRangePicker', () => {
   });
 
   it('passes the a11y audit', async () => {
-    await fixture<DateRangePicker>(subject).then(el =>
+    await fixture<HistogramDateRange>(subject).then(el =>
       expect(el).shadowDom.to.be.accessible()
     );
   });
 
   it('shows a message if no data', async () => {
-    const el = await fixture<DateRangePicker>(
-      html`<date-range-picker></date-range-picker>`
+    const el = await fixture<HistogramDateRange>(
+      html`<histogram-date-range></histogram-date-range>`
     );
     expect(el.shadowRoot?.innerHTML).to.contain('no data');
   });

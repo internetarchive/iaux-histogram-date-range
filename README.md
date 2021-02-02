@@ -1,25 +1,25 @@
-# \<date-range-picker>
+# \<histogram-date-range>
 
 This webcomponent follows the [open-wc](https://github.com/open-wc/open-wc) recommendation.
 
 Travis:
-[![Build Status](https://travis-ci.com/internetarchive/iaux-date-range-picker.svg?branch=master)](https://travis-ci.com/internetarchive/iaux-date-range-picker)
-CodeCov: [![codecov](https://codecov.io/gh/internetarchive/iaux-date-range-picker/branch/master/graph/badge.svg)](https://codecov.io/gh/internetarchive/iaux-date-range-picker)
+[![Build Status](https://travis-ci.com/internetarchive/iaux-histogram-date-range.svg?branch=master)](https://travis-ci.com/internetarchive/iaux-histogram-date-range)
+CodeCov: [![codecov](https://codecov.io/gh/internetarchive/iaux-histogram-date-range/branch/master/graph/badge.svg)](https://codecov.io/gh/internetarchive/iaux-histogram-date-range)
 
 ## Installation
 
 ```bash
-npm i date-range-picker
+npm i histogram-date-range
 ```
 
 ## Usage
 
 ```html
 <script type="module">
-  import 'date-range-picker/date-range-picker.js';
+  import 'histogram-date-range/histogram-date-range.js';
 </script>
 
-<date-range-picker></date-range-picker>
+<histogram-date-range></histogram-date-range>
 ```
 
 ## Linting with ESLint, Prettier, and Types
