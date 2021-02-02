@@ -17,8 +17,8 @@ import {
   LitElement,
   property,
   query
-} from "../_snowpack/pkg/lit-element.js";
-import dayjs from "../_snowpack/pkg/dayjs/esm/index.js";
+} from "../../_snowpack/pkg/lit-element.js";
+import dayjs from "../../_snowpack/pkg/dayjs/esm/index.js";
 const WIDTH = 180;
 const HEIGHT = 40;
 const SLIDER_WIDTH = 10;
