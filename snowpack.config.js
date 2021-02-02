@@ -3,7 +3,7 @@ module.exports = {
     out: 'docs',
   },
   mount: {
-    demo: { url: '/' },
+    demo: { url: '/demo' },
     src: { url: '/dist/src' },
   },
 };
