@@ -20,16 +20,16 @@
   </head>
 
   <script type="module">
-    import '../dist/date-range-picker.js';
+    import '../dist/histogram-date-range.js';
   </script>
   <body>
     <div class="container">
-      <date-range-picker
+      <histogram-date-range
         data='{ "minDate": "Aug 21 2010", "maxDate": "12/21/2021","bins": [74, 67, 17, 66, 49, 93, 47, 61, 32, 46, 53, 2, 13, 45, 28, 1, 8, 70, 37, 74, 67, 17, 66, 49, 93, 47, 61, 70, 37, 74, 67, 17, 66, 49, 93, 47, 61, 32, 32, 70, 37, 74, 67, 17, 66, 49, 93, 47, 61, 32 ]}'
-      ></date-range-picker>
+      ></histogram-date-range>
     </div>
     <div class="container">
-      <date-range-picker
+      <histogram-date-range
         width="300"
         height="50"
         tooltipWidth="140"
@@ -39,7 +39,7 @@
           --dateRangePickerInputWidth: 85px;
         "
         data='{ "minDate": "May 1, 1972", "maxDate": "12/21/1980","bins": [ 85, 25, 200, 0, 0, 34, 0, 2, 5, 10, 0, 56, 10, 45, 100, 70, 50]}'
-      ></date-range-picker>
+      ></histogram-date-range>
     </div>
   </body>
 </html>
