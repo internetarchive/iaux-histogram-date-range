@@ -17,7 +17,7 @@ const subject = html`
   </histogram-date-range>
 `;
 
-async function createCustomElementInHTMLContainer() {
+async function createCustomElementInHTMLContainer(): Promise<HistogramDateRange> {
   document.head.insertAdjacentHTML(
     'beforeend',
     `<style>
@@ -157,6 +157,7 @@ describe('HistogramDateRange', () => {
 
     // pointer down
     minSlider.dispatchEvent(new PointerEvent('pointerdown'));
+    await aTimeout(20);
     expect(Array.from(container.classList)).to.include('dragging'); // cursor changes to 'grab'
 
     // slide to right

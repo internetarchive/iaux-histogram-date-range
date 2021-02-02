@@ -35,7 +35,7 @@ const tooltipBackgroundColor = css`var(--histogramDateRangeTooltipBackgroundColo
 const tooltipTextColor = css`var(--histogramDateRangeTooltipTextColor, #FFFFFF)`;
 const tooltipFontSize = css`var(--histogramDateRangeTooltipFontSize, 1.1rem)`;
 
-type SliderIds = 'slider-min' | 'slider-max';
+type SliderId = 'slider-min' | 'slider-max';
 
 interface HistogramInputData {
   minDate: string;
@@ -63,22 +63,23 @@ export class HistogramDateRange extends LitElement {
   @property({ type: String }) dateFormat = DATE_FORMAT;
   @property({ type: Object }) data?: HistogramInputData;
 
-  @internalProperty() minSliderX: number = 0;
-  @internalProperty() maxSliderX: number = 0;
+  @internalProperty() minSliderX = 0;
+  @internalProperty() maxSliderX = 0;
   @internalProperty() tooltipOffset = 0;
-  @internalProperty() tooltipContent: TemplateResult | '' = '';
-  @internalProperty() tooltipDisplay: 'block' | 'none' = 'none';
+  @internalProperty() tooltipContent?: TemplateResult;
+  @internalProperty() tooltipVisible = false;
+  @internalProperty() isDragging = false;
 
   @query('#tooltip') tooltip!: HTMLDivElement;
   @query('#container') container!: HTMLDivElement;
 
   // these properties don't need to be tracked for changes
-  private _minDate: number = 0;
-  private _maxDate: number = 0;
-  private _dragOffset: number = 0;
-  private _histWidth: number = 0;
-  private _numBins: number = 0;
-  private _binWidth: number = 0;
+  private _minDate = 0;
+  private _maxDate = 0;
+  private _dragOffset = 0;
+  private _histWidth = 0;
+  private _numBins = 0;
+  private _binWidth = 0;
   private _currentSlider?: SVGRectElement;
   private _histData: HistogramItem[] = [];
 
@@ -122,27 +123,27 @@ export class HistogramDateRange extends LitElement {
   }
 
   private showTooltip(e: PointerEvent): void {
-    if (Array.from(this.container.classList).includes('dragging')) {
+    if (this.isDragging) {
       return;
     }
     const target = e.currentTarget as SVGRectElement;
     const x = target.x.baseVal.value + this.sliderWidth / 2;
-    const data = target.dataset;
-    const itemsText = `item${data.numItems !== '1' ? 's' : ''}`;
+    const dataset = target.dataset;
+    const itemsText = `item${dataset.numItems !== '1' ? 's' : ''}`;
 
     this.tooltipOffset =
       x + (this._binWidth - this.sliderWidth - this.tooltipWidth) / 2;
 
     this.tooltipContent = html`
-      ${data.numItems} ${itemsText}<br />
-      ${data.binStart} - ${data.binEnd}
+      ${dataset.numItems} ${itemsText}<br />
+      ${dataset.binStart} - ${dataset.binEnd}
     `;
-    this.tooltipDisplay = 'block';
+    this.tooltipVisible = true;
   }
 
   private hideTooltip(): void {
-    this.tooltipContent = '';
-    this.tooltipDisplay = 'none';
+    this.tooltipContent = undefined;
+    this.tooltipVisible = false;
   }
 
   // use arrow functions (rather than standard JS class instance methods) so
@@ -154,7 +155,7 @@ export class HistogramDateRange extends LitElement {
     e.preventDefault();
 
     this.setDragOffset(e);
-    this.container.classList.add('dragging');
+    this.isDragging = true;
 
     window.addEventListener('pointermove', this.move);
     window.addEventListener('pointerup', this.drop);
@@ -162,7 +163,7 @@ export class HistogramDateRange extends LitElement {
   };
 
   private drop = (): void => {
-    this.container.classList.remove('dragging');
+    this.isDragging = false;
 
     window.removeEventListener('pointermove', this.move);
     window.removeEventListener('pointerup', this.drop);
@@ -172,7 +173,7 @@ export class HistogramDateRange extends LitElement {
   private move = (e: PointerEvent): void => {
     const newX = e.offsetX - this._dragOffset;
     const slider = this._currentSlider as SVGRectElement;
-    return (slider.id as SliderIds) === 'slider-min'
+    return (slider.id as SliderId) === 'slider-min'
       ? this.setMinSlider(newX)
       : this.setMaxSlider(newX);
   };
@@ -181,7 +182,7 @@ export class HistogramDateRange extends LitElement {
   private setDragOffset(e: PointerEvent): void {
     this._currentSlider = e.currentTarget as SVGRectElement;
     const sliderX =
-      (this._currentSlider.id as SliderIds) === 'slider-min'
+      (this._currentSlider.id as SliderId) === 'slider-min'
         ? this.minSliderX
         : this.maxSliderX;
     this._dragOffset = e.offsetX - sliderX;
@@ -243,11 +244,11 @@ export class HistogramDateRange extends LitElement {
     target.value = this.maxInputValue;
   }
 
-  private get minInputValue() {
+  private get minInputValue(): string {
     return this.translatePositionToDate(this.minSliderX);
   }
 
-  private get maxInputValue() {
+  private get maxInputValue(): string {
     return this.translatePositionToDate(this.maxSliderX);
   }
 
@@ -283,7 +284,7 @@ export class HistogramDateRange extends LitElement {
 
   private generateSliderSVG(
     sliderPositionX: number,
-    id: SliderIds,
+    id: SliderId,
     sliderShape: string
   ): SVGTemplateResult {
     // whether the curved part of the slider is facing towards the left (1), ie
@@ -389,7 +390,7 @@ export class HistogramDateRange extends LitElement {
           height: ${this.tooltipHeight}px;
           top: ${-9 - this.tooltipHeight}px;
           left: ${this.tooltipOffset}px;
-          display: ${this.tooltipDisplay};
+          display: ${this.tooltipVisible ? 'block' : 'none'};
         }
         #tooltip:after {
           left: ${this.tooltipWidth / 2}px;
@@ -471,7 +472,11 @@ export class HistogramDateRange extends LitElement {
       return html`no data`;
     }
     return html`
-      <div id="container" class="noselect" style="width: ${this.width}px">
+      <div
+        id="container"
+        class="noselect ${this.isDragging ? 'dragging' : ''}"
+        style="width: ${this.width}px"
+      >
         ${this.tooltipTemplate}
         <svg
           width="${this.width}"
