@@ -1,14 +1,15 @@
 import {
-  html,
-  svg,
   css,
+  customElement,
+  html,
   internalProperty,
   LitElement,
-  TemplateResult,
-  customElement,
-  SVGTemplateResult,
   property,
+  PropertyValues,
   query,
+  svg,
+  SVGTemplateResult,
+  TemplateResult,
 } from 'lit-element';
 import dayjs from 'dayjs/esm/index.js';
 
@@ -85,26 +86,28 @@ export class HistogramDateRange extends LitElement {
 
   /* eslint-enable lines-between-class-members */
 
-  firstUpdated(): void {
-    this.minSliderX = this.sliderWidth;
-    this.maxSliderX = this.width - this.sliderWidth;
-    this._minDate = dayjs(this.data?.minDate).valueOf();
-    this._maxDate = dayjs(this.data?.maxDate).valueOf();
-    this._histWidth = this.width - this.sliderWidth * 2;
-    this._numBins = this.data?.bins?.length ?? 1;
-    this._binWidth = this._histWidth / this._numBins;
-    this._histData = this.generateHistData();
+  updated(changedProps: PropertyValues): void {
+    if (changedProps.has('data')) {
+      this.handleDataUpdate();
+    }
   }
 
-  private generateHistData(): HistogramItem[] {
-    if (!this.data) {
-      return [];
+  private handleDataUpdate(): void {
+    if (!this.data?.bins) {
+      return;
     }
+    this.minSliderX = this.sliderWidth;
+    this.maxSliderX = this.width - this.sliderWidth;
+    this._histWidth = this.width - this.sliderWidth * 2;
+    this._minDate = dayjs(this.data.minDate).valueOf();
+    this._maxDate = dayjs(this.data.maxDate).valueOf();
+    this._numBins = this.data.bins?.length ?? 1;
+    this._binWidth = this._histWidth / this._numBins;
     const minValue = Math.min(...this.data.bins);
     const maxValue = Math.max(...this.data.bins);
     const valueScale = this.height / Math.log1p(maxValue - minValue);
     const dateScale = this.dateRange / this._numBins;
-    return this.data.bins.map((v: number, i: number) => {
+    this._histData = this.data.bins.map((v: number, i: number) => {
       return {
         value: v,
         height: Math.floor(Math.log1p(v) * valueScale),
@@ -116,6 +119,7 @@ export class HistogramDateRange extends LitElement {
         )}`,
       };
     });
+    this.requestUpdate();
   }
 
   private get dateRange(): number {
