@@ -26,6 +26,7 @@ const SLIDER_WIDTH = 10;
 const TOOLTIP_WIDTH = 125;
 const TOOLTIP_HEIGHT = 30;
 const DATE_FORMAT = "M/D/YYYY";
+const MISSING_OR_INVALID_DATA = "missing or invalid data";
 const SLIDER_CORNER_SIZE = 4;
 const sliderFill = "var(--histogramDateRangeSliderFill, #4B65FE)";
 const selectedRangeFill = "var(--histogramDateRangeSelectedRangeFill, #DBE0FF)";
@@ -37,6 +38,13 @@ const inputFontSize = css`var(--histogramDateRangeInputFontSize, 1.2rem)`;
 const tooltipBackgroundColor = css`var(--histogramDateRangeTooltipBackgroundColor, #2C2C2C)`;
 const tooltipTextColor = css`var(--histogramDateRangeTooltipTextColor, #FFFFFF)`;
 const tooltipFontSize = css`var(--histogramDateRangeTooltipFontSize, 1.1rem)`;
+class HistogramInputData {
+  constructor() {
+    this.minDate = "";
+    this.maxDate = "";
+    this.bins = [];
+  }
+}
 export let HistogramDateRange = class extends LitElement {
   constructor() {
     super(...arguments);
@@ -46,6 +54,8 @@ export let HistogramDateRange = class extends LitElement {
     this.tooltipWidth = TOOLTIP_WIDTH;
     this.tooltipHeight = TOOLTIP_HEIGHT;
     this.dateFormat = DATE_FORMAT;
+    this.invalidDataMessage = MISSING_OR_INVALID_DATA;
+    this.data = new HistogramInputData();
     this.minSliderX = 0;
     this.maxSliderX = 0;
     this.tooltipOffset = 0;
@@ -84,7 +94,7 @@ export let HistogramDateRange = class extends LitElement {
     }
   }
   handleDataUpdate() {
-    if (!this.data?.bins) {
+    if (!this.hasValidData) {
       return;
     }
     this.minSliderX = this.sliderWidth;
@@ -92,7 +102,7 @@ export let HistogramDateRange = class extends LitElement {
     this._histWidth = this.width - this.sliderWidth * 2;
     this._minDate = dayjs(this.data.minDate).valueOf();
     this._maxDate = dayjs(this.data.maxDate).valueOf();
-    this._numBins = this.data.bins?.length ?? 1;
+    this._numBins = this.data.bins.length;
     this._binWidth = this._histWidth / this._numBins;
     const minValue = Math.min(...this.data.bins);
     const maxValue = Math.max(...this.data.bins);
@@ -107,6 +117,9 @@ export let HistogramDateRange = class extends LitElement {
       };
     });
     this.requestUpdate();
+  }
+  get hasValidData() {
+    return Boolean(this.data.minDate && dayjs(this.data.minDate).valueOf() && this.data.maxDate && dayjs(this.data.maxDate).valueOf() && Array.isArray(this.data.bins) && this.data.bins.length > 0);
   }
   get dateRange() {
     return this._maxDate - this._minDate;
@@ -149,7 +162,7 @@ export let HistogramDateRange = class extends LitElement {
   translatePositionToDate(x) {
     const milliseconds = (x - this.sliderWidth) * this.dateRange / this._histWidth;
     const date = dayjs(this._minDate + milliseconds);
-    return date.format(this.dateFormat);
+    return date.isValid() ? date.format(this.dateFormat) : "";
   }
   translateDateToPosition(date) {
     const milliseconds = dayjs(date).valueOf();
@@ -302,8 +315,8 @@ export let HistogramDateRange = class extends LitElement {
     `;
   }
   render() {
-    if (!this.data || !this._histData) {
-      return html`no data`;
+    if (!this.hasValidData) {
+      return html`${this.invalidDataMessage}`;
     }
     return html`
       <div
@@ -414,6 +427,9 @@ __decorate([
 __decorate([
   property({type: String})
 ], HistogramDateRange.prototype, "dateFormat", 2);
+__decorate([
+  property({type: String})
+], HistogramDateRange.prototype, "invalidDataMessage", 2);
 __decorate([
   property({type: Object})
 ], HistogramDateRange.prototype, "data", 2);
