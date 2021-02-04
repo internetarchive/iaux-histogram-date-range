@@ -1,6 +1,6 @@
 {
   "name": "@internetarchive/histogram-date-range",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Internet Archive histogram date range picker",
   "license": "AGPL-3.0-only",
   "main": "dist/index.js",
@@ -76,8 +76,7 @@
   "lint-staged": {
     "*.ts": [
       "eslint --fix",
-      "prettier --write",
-      "git add"
+      "prettier --write"
     ]
   }
 }

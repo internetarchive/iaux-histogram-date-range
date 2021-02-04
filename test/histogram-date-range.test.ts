@@ -263,10 +263,17 @@ describe('HistogramDateRange', () => {
     );
   });
 
-  it('shows a message if no data', async () => {
-    const el = await fixture<HistogramDateRange>(
+  it('handles missing data', async () => {
+    let el = await fixture<HistogramDateRange>(
       html`<histogram-date-range></histogram-date-range>`
     );
     expect(el.shadowRoot?.innerHTML).to.contain('no data');
+    el = await fixture<HistogramDateRange>(
+      html`<histogram-date-range
+        missingDataMessage="no data available"
+        data='{ "minDate": "1/1/2000", "maxDate": "12/1/2010","bins": []}'
+      ></histogram-date-range>`
+    );
+    expect(el.shadowRoot?.innerHTML).to.contain('no data available');
   });
 });
