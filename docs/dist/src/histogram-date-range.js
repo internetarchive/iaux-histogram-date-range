@@ -26,7 +26,7 @@ const SLIDER_WIDTH = 10;
 const TOOLTIP_WIDTH = 125;
 const TOOLTIP_HEIGHT = 30;
 const DATE_FORMAT = "M/D/YYYY";
-const MISSING_OR_INVALID_DATA = "missing or invalid data";
+const MISSING_DATA = "no data";
 const SLIDER_CORNER_SIZE = 4;
 const sliderFill = "var(--histogramDateRangeSliderFill, #4B65FE)";
 const selectedRangeFill = "var(--histogramDateRangeSelectedRangeFill, #DBE0FF)";
@@ -54,7 +54,7 @@ export let HistogramDateRange = class extends LitElement {
     this.tooltipWidth = TOOLTIP_WIDTH;
     this.tooltipHeight = TOOLTIP_HEIGHT;
     this.dateFormat = DATE_FORMAT;
-    this.invalidDataMessage = MISSING_OR_INVALID_DATA;
+    this.missingDataMessage = MISSING_DATA;
     this.data = new HistogramInputData();
     this.minSliderX = 0;
     this.maxSliderX = 0;
@@ -94,7 +94,7 @@ export let HistogramDateRange = class extends LitElement {
     }
   }
   handleDataUpdate() {
-    if (!this.hasValidData) {
+    if (!this.hasData) {
       return;
     }
     this.minSliderX = this.sliderWidth;
@@ -118,8 +118,8 @@ export let HistogramDateRange = class extends LitElement {
     });
     this.requestUpdate();
   }
-  get hasValidData() {
-    return Boolean(this.data.minDate && dayjs(this.data.minDate).valueOf() && this.data.maxDate && dayjs(this.data.maxDate).valueOf() && Array.isArray(this.data.bins) && this.data.bins.length > 0);
+  get hasData() {
+    return this.data.bins.length > 0;
   }
   get dateRange() {
     return this._maxDate - this._minDate;
@@ -315,8 +315,8 @@ export let HistogramDateRange = class extends LitElement {
     `;
   }
   render() {
-    if (!this.hasValidData) {
-      return html`${this.invalidDataMessage}`;
+    if (!this.hasData) {
+      return html`${this.missingDataMessage}`;
     }
     return html`
       <div
@@ -429,7 +429,7 @@ __decorate([
 ], HistogramDateRange.prototype, "dateFormat", 2);
 __decorate([
   property({type: String})
-], HistogramDateRange.prototype, "invalidDataMessage", 2);
+], HistogramDateRange.prototype, "missingDataMessage", 2);
 __decorate([
   property({type: Object})
 ], HistogramDateRange.prototype, "data", 2);
