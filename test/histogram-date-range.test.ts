@@ -263,28 +263,17 @@ describe('HistogramDateRange', () => {
     );
   });
 
-  it('handles missing or invalid data', async () => {
+  it('handles missing data', async () => {
     let el = await fixture<HistogramDateRange>(
       html`<histogram-date-range></histogram-date-range>`
     );
-    expect(el.shadowRoot?.innerHTML).to.contain('missing or invalid data');
+    expect(el.shadowRoot?.innerHTML).to.contain('no data');
     el = await fixture<HistogramDateRange>(
       html`<histogram-date-range
-        data='{"bins": "[1,2,3]"}'
-      ></histogram-date-range>`
-    );
-    expect(el.shadowRoot?.innerHTML).to.contain('missing or invalid data');
-    el = await fixture<HistogramDateRange>(
-      html`<histogram-date-range
+        missingDataMessage="no data available"
         data='{ "minDate": "1/1/2000", "maxDate": "12/1/2010","bins": []}'
       ></histogram-date-range>`
     );
-    expect(el.shadowRoot?.innerHTML).to.contain('missing or invalid data');
-    el = await fixture<HistogramDateRange>(
-      html`<histogram-date-range
-        data='{ "minDate": "invalid", "maxDate": "12/1/2010","bins": [1, 2, 3]}'
-      ></histogram-date-range>`
-    );
-    expect(el.shadowRoot?.innerHTML).to.contain('missing or invalid data');
+    expect(el.shadowRoot?.innerHTML).to.contain('no data available');
   });
 });

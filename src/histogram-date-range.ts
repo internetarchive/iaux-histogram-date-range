@@ -20,7 +20,7 @@ const SLIDER_WIDTH = 10;
 const TOOLTIP_WIDTH = 125;
 const TOOLTIP_HEIGHT = 30;
 const DATE_FORMAT = 'M/D/YYYY';
-const MISSING_OR_INVALID_DATA = 'missing or invalid data';
+const MISSING_DATA = 'no data';
 
 // this constant is not set up to be overridden
 const SLIDER_CORNER_SIZE = 4;
@@ -63,7 +63,7 @@ export class HistogramDateRange extends LitElement {
   @property({ type: Number }) tooltipWidth = TOOLTIP_WIDTH;
   @property({ type: Number }) tooltipHeight = TOOLTIP_HEIGHT;
   @property({ type: String }) dateFormat = DATE_FORMAT;
-  @property({ type: String }) invalidDataMessage = MISSING_OR_INVALID_DATA;
+  @property({ type: String }) missingDataMessage = MISSING_DATA;
   @property({ type: Object }) data = new HistogramInputData();
 
   @internalProperty() minSliderX = 0;
@@ -95,7 +95,7 @@ export class HistogramDateRange extends LitElement {
   }
 
   private handleDataUpdate(): void {
-    if (!this.hasValidData) {
+    if (!this.hasData) {
       return;
     }
     this.minSliderX = this.sliderWidth;
@@ -124,15 +124,8 @@ export class HistogramDateRange extends LitElement {
     this.requestUpdate();
   }
 
-  private get hasValidData(): boolean {
-    return Boolean(
-      this.data.minDate &&
-        dayjs(this.data.minDate).valueOf() &&
-        this.data.maxDate &&
-        dayjs(this.data.maxDate).valueOf() &&
-        Array.isArray(this.data.bins) &&
-        this.data.bins.length > 0
-    );
+  private get hasData(): boolean {
+    return this.data.bins.length > 0;
   }
 
   private get dateRange(): number {
@@ -485,8 +478,8 @@ export class HistogramDateRange extends LitElement {
   `;
 
   render(): TemplateResult {
-    if (!this.hasValidData) {
-      return html`${this.invalidDataMessage}`;
+    if (!this.hasData) {
+      return html`${this.missingDataMessage}`;
     }
     return html`
       <div
