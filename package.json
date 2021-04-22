@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "dayjs": "^1.10.4",
-    "lit": "*"
+    "lit": "^2.0.0-rc.1"
   },
   "devDependencies": {
     "@open-wc/eslint-config": "^4.3.0",
