@@ -11,14 +11,11 @@ var __decorate = (decorators, target, key, kind) => {
 };
 import {
   css,
-  customElement,
   html,
-  internalProperty,
   LitElement,
-  property,
-  query,
   svg
-} from "../../_snowpack/pkg/lit-element.js";
+} from "../../_snowpack/pkg/lit.js";
+import {property, state, query, customElement} from "../../_snowpack/pkg/lit/decorators.js";
 import dayjs from "../../_snowpack/pkg/dayjs/esm/index.js";
 const WIDTH = 180;
 const HEIGHT = 40;
@@ -434,22 +431,22 @@ __decorate([
   property({type: Object})
 ], HistogramDateRange.prototype, "data", 2);
 __decorate([
-  internalProperty()
+  state()
 ], HistogramDateRange.prototype, "minSliderX", 2);
 __decorate([
-  internalProperty()
+  state()
 ], HistogramDateRange.prototype, "maxSliderX", 2);
 __decorate([
-  internalProperty()
+  state()
 ], HistogramDateRange.prototype, "tooltipOffset", 2);
 __decorate([
-  internalProperty()
+  state()
 ], HistogramDateRange.prototype, "tooltipContent", 2);
 __decorate([
-  internalProperty()
+  state()
 ], HistogramDateRange.prototype, "tooltipVisible", 2);
 __decorate([
-  internalProperty()
+  state()
 ], HistogramDateRange.prototype, "isDragging", 2);
 __decorate([
   query("#tooltip")

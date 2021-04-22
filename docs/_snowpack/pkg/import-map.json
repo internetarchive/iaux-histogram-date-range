@@ -1,6 +1,7 @@
 {
   "imports": {
     "dayjs/esm/index.js": "./dayjs/esm/index.js",
-    "lit-element": "./lit-element.js"
+    "lit": "./lit.js",
+    "lit/decorators.js": "./lit/decorators.js"
   }
 }

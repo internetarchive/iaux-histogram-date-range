@@ -1,16 +1,13 @@
 import {
   css,
-  customElement,
   html,
-  internalProperty,
   LitElement,
-  property,
   PropertyValues,
-  query,
   svg,
   SVGTemplateResult,
   TemplateResult,
-} from 'lit-element';
+} from 'lit';
+import { property, state, query, customElement } from 'lit/decorators.js';
 import dayjs from 'dayjs/esm/index.js';
 
 // these values can be overridden via the component's HTML (camelCased) attributes
@@ -66,12 +63,12 @@ export class HistogramDateRange extends LitElement {
   @property({ type: String }) missingDataMessage = MISSING_DATA;
   @property({ type: Object }) data = new HistogramInputData();
 
-  @internalProperty() minSliderX = 0;
-  @internalProperty() maxSliderX = 0;
-  @internalProperty() tooltipOffset = 0;
-  @internalProperty() tooltipContent?: TemplateResult;
-  @internalProperty() tooltipVisible = false;
-  @internalProperty() isDragging = false;
+  @state() minSliderX = 0;
+  @state() maxSliderX = 0;
+  @state() tooltipOffset = 0;
+  @state() tooltipContent?: TemplateResult;
+  @state() tooltipVisible = false;
+  @state() isDragging = false;
 
   @query('#tooltip') tooltip!: HTMLDivElement;
   @query('#container') container!: HTMLDivElement;
