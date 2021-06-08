@@ -1,5 +1,5 @@
 /* eslint-disable no-debugger */
-import { html, fixture, expect, aTimeout } from '@open-wc/testing';
+import { html, fixture, expect, oneEvent, aTimeout } from '@open-wc/testing';
 
 import { HistogramDateRange } from '../src/histogram-date-range';
 import '../src/histogram-date-range';
@@ -12,7 +12,11 @@ const subject = html`
     width="${WIDTH}"
     tooltipWidth="140"
     height="50"
-    data='{ "minDate": "1900", "maxDate": "Dec 4, 2020","bins": [ 33, 1, 100] }'
+    dateFormat="M/D/YYYY"
+    updateDelay="10"
+    minDate="1900"
+    maxDate="Dec 4, 2020"
+    bins="[33, 1, 100]"
   >
   </histogram-date-range>
 `;
@@ -25,11 +29,11 @@ async function createCustomElementInHTMLContainer(): Promise<HistogramDateRange>
         font-size:10px;
       }
       .container {
-        width: 400px; 
-        height: 400px; 
-        display: flex; 
+        width: 400px;
+        height: 400px;
+        display: flex;
         background: #FFF6E1;
-        justify-content: center; 
+        justify-content: center;
         align-items: center;
       }
     </style>`
@@ -62,19 +66,19 @@ describe('HistogramDateRange', () => {
 
     // valid min date
     minDateInput.value = '1950';
-    minDateInput.dispatchEvent(new Event('change'));
+    minDateInput.dispatchEvent(new Event('blur'));
     await aTimeout(20);
 
     expect(Math.floor(el.minSliderX)).to.eq(84);
-    expect(minDateInput.value).to.eq('1/1/1950');
+    expect(el.minSelectedDate).to.eq('1/1/1950'); // set to correct format
 
     // attempt to set date earlier than first item
     minDateInput.value = 'October 1, 1850';
-    minDateInput.dispatchEvent(new Event('change'));
-    await aTimeout(20);
+    minDateInput.dispatchEvent(new Event('blur'));
+    await aTimeout(100);
 
-    expect(Math.floor(el.minSliderX)).to.eq(SLIDER_WIDTH); // move all the way to left
-    expect(minDateInput.value).to.eq('1/1/1900'); // set to date of first item
+    expect(Math.floor(el.minSliderX)).to.eq(SLIDER_WIDTH); // leftmost valid position
+    expect(el.minSelectedDate).to.eq('1/1/1900'); // leftmost valid date
 
     /* -------------------------- maximum (right) slider ------------------------- */
     expect(el.maxSliderX).to.eq(WIDTH - SLIDER_WIDTH);
@@ -84,7 +88,7 @@ describe('HistogramDateRange', () => {
 
     // set valid max date
     maxDateInput.value = 'March 12 1975';
-    maxDateInput.dispatchEvent(new Event('change'));
+    maxDateInput.dispatchEvent(new Event('blur'));
     await aTimeout(20);
 
     expect(Math.floor(el.maxSliderX)).to.eq(121);
@@ -92,11 +96,11 @@ describe('HistogramDateRange', () => {
 
     // attempt to set date later than last item
     maxDateInput.value = 'Dec 31 2199';
-    maxDateInput.dispatchEvent(new Event('change'));
+    maxDateInput.dispatchEvent(new Event('blur'));
     await aTimeout(20);
 
-    expect(Math.floor(el.maxSliderX)).to.eq(WIDTH - SLIDER_WIDTH); // all the way to right
-    expect(maxDateInput.value).to.eq('12/4/2020'); // date of last item
+    expect(el.maxSliderX).to.eq(WIDTH - SLIDER_WIDTH); // rightmost valid position
+    expect(maxDateInput.value).to.eq('12/4/2020'); // rightmost valid date
   });
 
   it('handles invalid date inputs', async () => {
@@ -108,7 +112,7 @@ describe('HistogramDateRange', () => {
     ) as HTMLInputElement;
 
     minDateInput.value = 'May 17, 1961';
-    minDateInput.dispatchEvent(new Event('change'));
+    minDateInput.dispatchEvent(new Event('blur'));
     await aTimeout(20);
 
     expect(Math.floor(el.minSliderX)).to.eq(101);
@@ -116,7 +120,7 @@ describe('HistogramDateRange', () => {
 
     // enter invalid value
     minDateInput.value = 'invalid';
-    minDateInput.dispatchEvent(new Event('change'));
+    minDateInput.dispatchEvent(new Event('blur'));
     await aTimeout(20);
 
     expect(Math.floor(el.minSliderX)).to.eq(101); // does not move
@@ -133,8 +137,9 @@ describe('HistogramDateRange', () => {
 
     // enter invalid value
     maxDateInput.value = 'Abc 12, 1YYY';
-    maxDateInput.dispatchEvent(new Event('change'));
+    maxDateInput.dispatchEvent(new Event('blur'));
 
+    await aTimeout(20);
     expect(Math.floor(el.maxSliderX)).to.eq(WIDTH - SLIDER_WIDTH); // does not move
     expect(maxDateInput.value).to.eq('12/4/2020'); // resets back to previous date
   });
@@ -165,7 +170,7 @@ describe('HistogramDateRange', () => {
     await aTimeout(20);
 
     // slider has moved
-    expect(minSlider.getBoundingClientRect().x).to.eq(168);
+    expect(Math.round(minSlider.getBoundingClientRect().x)).to.eq(168);
     // min date is updated
     expect(minDateInput.value).to.eq('4/23/1940');
 
@@ -190,7 +195,7 @@ describe('HistogramDateRange', () => {
     await aTimeout(20);
 
     // slider has moved
-    expect(maxSlider.getBoundingClientRect().x).to.eq(268);
+    expect(Math.round(maxSlider.getBoundingClientRect().x)).to.eq(268);
     // max date is updated
     expect(maxDateInput.value).to.eq('10/8/2000');
     await aTimeout(20);
@@ -201,13 +206,33 @@ describe('HistogramDateRange', () => {
     await aTimeout(20);
 
     // slider moves all the way to meet the right slider
-    expect(minSlider.getBoundingClientRect().x).to.eq(258);
+    expect(Math.round(minSlider.getBoundingClientRect().x)).to.eq(258);
 
     // try to slide max slider past min slider
     maxSlider.dispatchEvent(new PointerEvent('pointerdown', { clientX: 120 }));
     window.dispatchEvent(new PointerEvent('pointermove', { clientX: 50 }));
     await aTimeout(20);
-    expect(maxSlider.getBoundingClientRect().x).to.eq(268); // max slider didn't move
+    expect(Math.round(maxSlider.getBoundingClientRect().x)).to.eq(268); // max slider didn't move
+  });
+
+  it('emits a custom event when the element date range changes', async () => {
+    const el = await createCustomElementInHTMLContainer();
+    const minDateInput = el.shadowRoot?.querySelector(
+      '#date-min'
+    ) as HTMLInputElement;
+    const dateRangeUpdatedEventListener = oneEvent(
+      el,
+      'histogramDateRangeUpdated'
+    );
+
+    // simulate typing a new value into input
+    minDateInput.value = '1955';
+    minDateInput.dispatchEvent(new Event('blur'));
+
+    // verify that event is emitted
+    const { detail } = await dateRangeUpdatedEventListener;
+    expect(detail.minDate).to.equal('1/1/1955');
+    expect(detail.maxDate).to.equal('12/4/2020');
   });
 
   it('shows/hides tooltip when hovering over (or pointing at) a bar', async () => {
@@ -263,17 +288,107 @@ describe('HistogramDateRange', () => {
     );
   });
 
+  it('allows range to be pre-selected', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range
+          minDate="1900"
+          maxDate="Dec 4, 2020"
+          minSelectedDate="2012"
+          maxSelectedDate="2019"
+          bins="[33, 1, 100]"
+        >
+        </histogram-date-range>
+      `
+    );
+    const minDateInput = el.shadowRoot?.querySelector(
+      '#date-min'
+    ) as HTMLInputElement;
+    expect(minDateInput.value).to.eq('2012');
+
+    const maxDateInput = el.shadowRoot?.querySelector(
+      '#date-max'
+    ) as HTMLInputElement;
+    expect(maxDateInput.value).to.eq('2019');
+  });
+
+  it('handles invalid pre-selected range by defaulting to overall max and min', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range
+          minDate="1900"
+          maxDate="2020"
+          minSelectedDate="2000xyz"
+          maxSelectedDate="5000"
+          bins="[33, 1, 100]"
+        >
+        </histogram-date-range>
+      `
+    );
+    const minDateInput = el.shadowRoot?.querySelector(
+      '#date-min'
+    ) as HTMLInputElement;
+    expect(minDateInput.value).to.eq('1900');
+
+    const maxDateInput = el.shadowRoot?.querySelector(
+      '#date-max'
+    ) as HTMLInputElement;
+    expect(maxDateInput.value).to.eq('2020');
+  });
+
   it('handles missing data', async () => {
     let el = await fixture<HistogramDateRange>(
-      html`<histogram-date-range></histogram-date-range>`
+      html`<histogram-date-range>
+        minDate="1900" maxDate="2020" bins=""
+      </histogram-date-range>`
     );
     expect(el.shadowRoot?.innerHTML).to.contain('no data');
     el = await fixture<HistogramDateRange>(
       html`<histogram-date-range
+        minDate="1900"
+        maxDate="2020"
+        bins="[]"
         missingDataMessage="no data available"
-        data='{ "minDate": "1/1/2000", "maxDate": "12/1/2010","bins": []}'
       ></histogram-date-range>`
     );
     expect(el.shadowRoot?.innerHTML).to.contain('no data available');
+  });
+
+  it('has a disabled state', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range
+          minDate="1900"
+          maxDate="2020"
+          disabled
+          bins="[33, 1, 100]"
+        >
+        </histogram-date-range>
+      `
+    );
+    expect(
+      el.shadowRoot
+        ?.querySelector('.inner-container')
+        ?.classList.contains('disabled')
+    ).to.eq(true);
+  });
+
+  it('has a loading state with an activity indicator', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range
+          minDate="1900"
+          maxDate="2020"
+          loading
+          bins="[33, 1, 100]"
+        >
+        </histogram-date-range>
+      `
+    );
+    expect(
+      el.shadowRoot
+        ?.querySelector('ia-activity-indicator')
+        ?.attributes?.getNamedItem('mode')?.value
+    ).to.eq('processing');
   });
 });

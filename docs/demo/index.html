@@ -6,44 +6,122 @@
     <style>
       html {
         font-size: 10px;
+        font-family: sans-serif;
       }
       body {
-        /* background: #333; */
         background: white;
       }
       .container {
         margin-top: 50px;
-        display: flex;
+        display: grid;
         justify-content: center;
+      }
+      .description {
+        margin: 10px auto;
+      }
+      .received-events {
+        position: absolute;
+        top: 0;
+      }
+      button {
+        font-size: 100%;
+        margin: 10px auto;
       }
     </style>
   </head>
 
   <script type="module">
     import '../dist/src/histogram-date-range.js';
+    // listen to events from the component and display the data received from them
+    document.addEventListener('histogramDateRangeUpdated', e => {
+      document.querySelector('.received-events').innerHTML +=
+        '\n' + JSON.stringify(e.detail);
+    });
   </script>
   <body>
+    <pre class="received-events"></pre>
+
     <div class="container">
+      <div class="description">pre-selected range with default date format</div>
       <histogram-date-range
-        data='{ "minDate": "Aug 21 2010", "maxDate": "12/21/2021","bins": [74, 67, 17, 66, 49, 93, 47, 61, 32, 46, 53, 2, 13, 45, 28, 1, 8, 70, 37, 74, 67, 17, 66, 49, 93, 47, 61, 70, 37, 74, 67, 17, 66, 49, 93, 47, 61, 32, 32, 70, 37, 74, 67, 17, 66, 49, 93, 47, 61, 32 ]}'
+        minDate="1400"
+        maxDate="2021"
+        minSelectedDate="1800"
+        maxSelectedDate="1900"
+        bins="[ 74, 67, 17, 66, 49, 93, 47, 61, 32, 46, 53, 2,
+                13, 45, 28, 1, 8, 70, 37, 74, 67, 17, 66, 49, 93,
+                47, 61, 70, 37, 74, 67, 17, 66, 49, 93, 47, 61, 32,
+                32, 70, 37, 74, 67, 17, 66, 49, 93, 47, 61, 32
+              ]"
       ></histogram-date-range>
     </div>
+
     <div class="container">
+      <div class="description">default range with custom date format</div>
       <histogram-date-range
         width="300"
         height="50"
         tooltipWidth="140"
+        updateDelay="2000"
         dateFormat="DD MMM YYYY"
         style="
-          --dateRangePickerTooltipFontSize: 1rem;
-          --dateRangePickerInputWidth: 85px;
+          --histogramDateRangeTooltipFontSize: 1rem;
+          --histogramDateRangeInputWidth: 85px;
         "
-        data='{ "minDate": "May 1, 1972", "maxDate": "12/21/1980","bins": [ 85, 25, 200, 0, 0, 34, 0, 2, 5, 10, 0, 56, 10, 45, 100, 70, 50]}'
+        minDate="May 1, 1972"
+        maxDate="12/21/1980"
+        bins="[ 85, 25, 200, 0, 0, 34, 0, 2, 5, 10, 0, 56, 10, 45, 100, 70, 50 ]"
       ></histogram-date-range>
     </div>
+
     <div class="container">
+      <div class="description">loading state toggle</div>
       <histogram-date-range
-        missingDataMessage="No items met your search criteria"
+        id="loading"
+        minDate="1900"
+        maxDate="2021"
+        bins="[
+            74, 67, 17, 66, 49, 93, 47, 61, 32, 46, 53, 2, 13, 45, 67, 17, 66, 
+            49, 93, 47, 61, 32, 32, 70, 37, 74, 67, 17, 66, 49, 93, 47, 61, 32 
+          ]"
+      ></histogram-date-range>
+      <button id="loading-toggle">toggle loading</button>
+    </div>
+    <script>
+      document
+        .querySelector('#loading-toggle')
+        .addEventListener('click', () => {
+          const histogram = document.querySelector(
+            'histogram-date-range#loading'
+          );
+          histogram.loading = !histogram.loading;
+        });
+    </script>
+
+    <div class="container">
+      <div class="description">data set up with js; no debounce delay</div>
+      <histogram-date-range
+        id="js-setup"
+        updateDelay="0"
+      ></histogram-date-range>
+    </div>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        const histogram = document.querySelector(
+          'histogram-date-range#js-setup'
+        );
+        histogram.minDate = '1950';
+        histogram.maxDate = '2000';
+        // generate an array like [0, 1, 2, ... 49]
+        histogram.bins = [...Array(50).keys()];
+      });
+    </script>
+
+    <div class="container">
+      <div class="description">empty data</div>
+      <histogram-date-range
+        bins=""
+        missingDataMessage="no data..."
       ></histogram-date-range>
     </div>
   </body>

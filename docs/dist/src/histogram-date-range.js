@@ -11,40 +11,34 @@ var __decorate = (decorators, target, key, kind) => {
 };
 import {
   css,
-  customElement,
   html,
-  internalProperty,
   LitElement,
-  property,
-  query,
   svg
-} from "../../_snowpack/pkg/lit-element.js";
+} from "../../_snowpack/pkg/lit.js";
+import {property, state, customElement} from "../../_snowpack/pkg/lit/decorators.js";
+import {live} from "../../_snowpack/pkg/lit/directives/live.js";
 import dayjs from "../../_snowpack/pkg/dayjs/esm/index.js";
+import "../../_snowpack/pkg/@internetarchive/ia-activity-indicator/ia-activity-indicator.js";
 const WIDTH = 180;
 const HEIGHT = 40;
 const SLIDER_WIDTH = 10;
 const TOOLTIP_WIDTH = 125;
 const TOOLTIP_HEIGHT = 30;
-const DATE_FORMAT = "M/D/YYYY";
+const DATE_FORMAT = "YYYY";
 const MISSING_DATA = "no data";
+const UPDATE_DEBOUNCE_DELAY_MS = 1e3;
 const SLIDER_CORNER_SIZE = 4;
-const sliderFill = "var(--histogramDateRangeSliderFill, #4B65FE)";
-const selectedRangeFill = "var(--histogramDateRangeSelectedRangeFill, #DBE0FF)";
-const barIncludedFill = "var(--histogramDateRangeBarIncludedFill, #2C2C2C)";
-const barExcludedFill = "var(--histogramDateRangeBarExcludedFill, #CCCCCC)";
+const sliderFill = css`var(--histogramDateRangeSliderFill, #4B65FE)`;
+const selectedRangeFill = css`var(--histogramDateRangeSelectedRangeFill, #DBE0FF)`;
+const barIncludedFill = css`var(--histogramDateRangeBarIncludedFill, #2C2C2C)`;
+const activityIndicatorColor = css`var(--histogramDateRangeActivityIndicator, #2C2C2C)`;
+const barExcludedFill = css`var(--histogramDateRangeBarExcludedFill, #CCCCCC)`;
 const inputBorder = css`var(--histogramDateRangeInputBorder, 0.5px solid #2C2C2C)`;
-const inputWidth = css`var(--histogramDateRangeInputWidth, 70px)`;
+const inputWidth = css`var(--histogramDateRangeInputWidth, 35px)`;
 const inputFontSize = css`var(--histogramDateRangeInputFontSize, 1.2rem)`;
 const tooltipBackgroundColor = css`var(--histogramDateRangeTooltipBackgroundColor, #2C2C2C)`;
 const tooltipTextColor = css`var(--histogramDateRangeTooltipTextColor, #FFFFFF)`;
 const tooltipFontSize = css`var(--histogramDateRangeTooltipFontSize, 1.1rem)`;
-class HistogramInputData {
-  constructor() {
-    this.minDate = "";
-    this.maxDate = "";
-    this.bins = [];
-  }
-}
 export let HistogramDateRange = class extends LitElement {
   constructor() {
     super(...arguments);
@@ -53,95 +47,205 @@ export let HistogramDateRange = class extends LitElement {
     this.sliderWidth = SLIDER_WIDTH;
     this.tooltipWidth = TOOLTIP_WIDTH;
     this.tooltipHeight = TOOLTIP_HEIGHT;
+    this.updateDelay = UPDATE_DEBOUNCE_DELAY_MS;
     this.dateFormat = DATE_FORMAT;
     this.missingDataMessage = MISSING_DATA;
-    this.data = new HistogramInputData();
-    this.minSliderX = 0;
-    this.maxSliderX = 0;
-    this.tooltipOffset = 0;
-    this.tooltipVisible = false;
-    this.isDragging = false;
-    this._minDate = 0;
-    this._maxDate = 0;
+    this.minDate = "";
+    this.maxDate = "";
+    this.disabled = false;
+    this.bins = [];
+    this._tooltipOffset = 0;
+    this._tooltipVisible = false;
+    this._isDragging = false;
+    this._isLoading = false;
+    this._minSelectedDate = "";
+    this._maxSelectedDate = "";
+    this._minDateMS = 0;
+    this._maxDateMS = 0;
     this._dragOffset = 0;
     this._histWidth = 0;
-    this._numBins = 0;
     this._binWidth = 0;
     this._histData = [];
+    this._previousDateRange = "";
     this.drag = (e) => {
       e.preventDefault();
+      if (this.disabled) {
+        return;
+      }
       this.setDragOffset(e);
-      this.isDragging = true;
-      window.addEventListener("pointermove", this.move);
-      window.addEventListener("pointerup", this.drop);
-      window.addEventListener("pointercancel", this.drop);
+      this._isDragging = true;
+      this.addListeners();
+      this.cancelPendingUpdateEvent();
     };
     this.drop = () => {
-      this.isDragging = false;
-      window.removeEventListener("pointermove", this.move);
-      window.removeEventListener("pointerup", this.drop);
-      window.removeEventListener("pointercancel", this.drop);
+      if (this._isDragging) {
+        this.removeListeners();
+        this.beginEmitUpdateProcess();
+      }
+      this._isDragging = false;
     };
     this.move = (e) => {
       const newX = e.offsetX - this._dragOffset;
       const slider = this._currentSlider;
-      return slider.id === "slider-min" ? this.setMinSlider(newX) : this.setMaxSlider(newX);
+      const date = this.translatePositionToDate(newX);
+      if (slider.id === "slider-min") {
+        this.minSelectedDate = date;
+      } else {
+        this.maxSelectedDate = date;
+      }
     };
   }
+  disconnectedCallback() {
+    this.removeListeners();
+    super.disconnectedCallback();
+  }
   updated(changedProps) {
-    if (changedProps.has("data")) {
+    if (changedProps.has("bins") || changedProps.has("Date")) {
       this.handleDataUpdate();
     }
   }
   handleDataUpdate() {
-    if (!this.hasData) {
+    if (!this.hasBinData) {
       return;
     }
-    this.minSliderX = this.sliderWidth;
-    this.maxSliderX = this.width - this.sliderWidth;
     this._histWidth = this.width - this.sliderWidth * 2;
-    this._minDate = dayjs(this.data.minDate).valueOf();
-    this._maxDate = dayjs(this.data.maxDate).valueOf();
-    this._numBins = this.data.bins.length;
+    this._minDateMS = dayjs(this.minDate).valueOf();
+    this._maxDateMS = dayjs(this.maxDate).valueOf();
     this._binWidth = this._histWidth / this._numBins;
-    const minValue = Math.min(...this.data.bins);
-    const maxValue = Math.max(...this.data.bins);
+    this._previousDateRange = this.currentDateRangeString;
+    this._histData = this.calculateHistData();
+    this.minSelectedDate = this.minSelectedDate ? this.minSelectedDate : this.minDate;
+    this.maxSelectedDate = this.maxSelectedDate ? this.maxSelectedDate : this.maxDate;
+    this.requestUpdate();
+  }
+  calculateHistData() {
+    const minValue = Math.min(...this.bins);
+    const maxValue = Math.max(...this.bins);
     const valueScale = this.height / Math.log1p(maxValue - minValue);
-    const dateScale = this.dateRange / this._numBins;
-    this._histData = this.data.bins.map((v, i) => {
+    const dateScale = this.dateRangeMS / this._numBins;
+    return this.bins.map((v, i) => {
       return {
         value: v,
         height: Math.floor(Math.log1p(v) * valueScale),
-        binStart: `${dayjs(i * dateScale + this._minDate).format(this.dateFormat)}`,
-        binEnd: `${dayjs((i + 1) * dateScale + this._minDate).format(this.dateFormat)}`
+        binStart: `${this.formatDate(i * dateScale + this._minDateMS)}`,
+        binEnd: `${this.formatDate((i + 1) * dateScale + this._minDateMS)}`
       };
     });
+  }
+  get hasBinData() {
+    return this._numBins > 0;
+  }
+  get _numBins() {
+    if (!this.bins || !this.bins.length) {
+      return 0;
+    }
+    return this.bins.length;
+  }
+  get loading() {
+    return this._isLoading;
+  }
+  set loading(value) {
+    this.disabled = value;
+    this._isLoading = value;
+  }
+  get minSelectedDate() {
+    return this.formatDate(this._minSelectedDate);
+  }
+  set minSelectedDate(rawDate) {
+    if (!this._minSelectedDate) {
+      this._minSelectedDate = rawDate;
+    }
+    const x = this.translateDateToPosition(rawDate);
+    if (x) {
+      const validX = this.validMinSliderX(x);
+      this._minSelectedDate = this.translatePositionToDate(validX);
+    }
     this.requestUpdate();
   }
-  get hasData() {
-    return this.data.bins.length > 0;
+  get maxSelectedDate() {
+    return this.formatDate(this._maxSelectedDate);
   }
-  get dateRange() {
-    return this._maxDate - this._minDate;
+  set maxSelectedDate(rawDate) {
+    if (!this._maxSelectedDate) {
+      this._maxSelectedDate = rawDate;
+    }
+    const x = this.translateDateToPosition(rawDate);
+    if (x) {
+      const validX = this.validMaxSliderX(x);
+      this._maxSelectedDate = this.translatePositionToDate(validX);
+    }
+    this.requestUpdate();
+  }
+  get minSliderX() {
+    return this.translateDateToPosition(this.minSelectedDate) ?? this.sliderWidth;
+  }
+  get maxSliderX() {
+    return this.translateDateToPosition(this.maxSelectedDate) ?? this.width - this.sliderWidth;
+  }
+  get dateRangeMS() {
+    return this._maxDateMS - this._minDateMS;
   }
   showTooltip(e) {
-    if (this.isDragging) {
+    if (this._isDragging || this.disabled) {
       return;
     }
     const target = e.currentTarget;
     const x = target.x.baseVal.value + this.sliderWidth / 2;
     const dataset = target.dataset;
     const itemsText = `item${dataset.numItems !== "1" ? "s" : ""}`;
-    this.tooltipOffset = x + (this._binWidth - this.sliderWidth - this.tooltipWidth) / 2;
-    this.tooltipContent = html`
+    this._tooltipOffset = x + (this._binWidth - this.sliderWidth - this.tooltipWidth) / 2;
+    this._tooltipContent = html`
       ${dataset.numItems} ${itemsText}<br />
       ${dataset.binStart} - ${dataset.binEnd}
     `;
-    this.tooltipVisible = true;
+    this._tooltipVisible = true;
   }
   hideTooltip() {
-    this.tooltipContent = void 0;
-    this.tooltipVisible = false;
+    this._tooltipContent = void 0;
+    this._tooltipVisible = false;
+  }
+  validMinSliderX(newX) {
+    const validX = Math.max(newX, this.sliderWidth);
+    return Math.min(validX, this.maxSliderX);
+  }
+  validMaxSliderX(newX) {
+    const validX = Math.max(newX, this.minSliderX);
+    return Math.min(validX, this.width - this.sliderWidth);
+  }
+  addListeners() {
+    window.addEventListener("pointermove", this.move);
+    window.addEventListener("pointerup", this.drop);
+    window.addEventListener("pointercancel", this.drop);
+  }
+  removeListeners() {
+    window.removeEventListener("pointermove", this.move);
+    window.removeEventListener("pointerup", this.drop);
+    window.removeEventListener("pointercancel", this.drop);
+  }
+  beginEmitUpdateProcess() {
+    this.cancelPendingUpdateEvent();
+    this._emitUpdatedEventTimer = setTimeout(() => {
+      if (this.currentDateRangeString === this._previousDateRange) {
+        return;
+      }
+      this._previousDateRange = this.currentDateRangeString;
+      const options = {
+        detail: {
+          minDate: this.minSelectedDate,
+          maxDate: this.maxSelectedDate
+        },
+        bubbles: true,
+        composed: true
+      };
+      this.dispatchEvent(new CustomEvent("histogramDateRangeUpdated", options));
+    }, this.updateDelay);
+  }
+  cancelPendingUpdateEvent() {
+    if (this._emitUpdatedEventTimer === void 0) {
+      return;
+    }
+    clearTimeout(this._emitUpdatedEventTimer);
+    this._emitUpdatedEventTimer = void 0;
   }
   setDragOffset(e) {
     this._currentSlider = e.currentTarget;
@@ -151,69 +255,67 @@ export let HistogramDateRange = class extends LitElement {
       this._dragOffset = 0;
     }
   }
-  setMinSlider(newX) {
-    const toSet = Math.max(newX, this.sliderWidth);
-    this.minSliderX = Math.min(toSet, this.maxSliderX);
-  }
-  setMaxSlider(newX) {
-    const toSet = Math.max(newX, this.minSliderX);
-    this.maxSliderX = Math.min(toSet, this.width - this.sliderWidth);
-  }
   translatePositionToDate(x) {
-    const milliseconds = (x - this.sliderWidth) * this.dateRange / this._histWidth;
-    const date = dayjs(this._minDate + milliseconds);
-    return date.isValid() ? date.format(this.dateFormat) : "";
+    const milliseconds = Math.ceil((x - this.sliderWidth) * this.dateRangeMS / this._histWidth);
+    return this.formatDate(this._minDateMS + milliseconds);
   }
   translateDateToPosition(date) {
     const milliseconds = dayjs(date).valueOf();
-    if (!milliseconds) {
-      return null;
-    }
-    return this.sliderWidth + (milliseconds - this._minDate) * this._histWidth / this.dateRange;
+    const xPosition = this.sliderWidth + (milliseconds - this._minDateMS) * this._histWidth / this.dateRangeMS;
+    return isNaN(milliseconds) || isNaN(xPosition) ? null : xPosition;
   }
   handleMinDateInput(e) {
     const target = e.currentTarget;
-    const newX = this.translateDateToPosition(target.value);
-    if (newX) {
-      this.setMinSlider(newX);
-    }
-    target.value = this.minInputValue;
+    this.minSelectedDate = target.value;
+    this.beginEmitUpdateProcess();
   }
   handleMaxDateInput(e) {
     const target = e.currentTarget;
-    const newX = this.translateDateToPosition(target.value);
-    if (newX) {
-      this.setMaxSlider(newX);
+    this.maxSelectedDate = target.value;
+    this.beginEmitUpdateProcess();
+  }
+  get currentDateRangeString() {
+    return `${this.minSelectedDate}:${this.maxSelectedDate}`;
+  }
+  get minSelectedDateMS() {
+    return dayjs(this.minSelectedDate).valueOf();
+  }
+  get maxSelectedDateMS() {
+    return dayjs(this.maxSelectedDate).valueOf();
+  }
+  handleBarClick(e) {
+    const dataset = e.currentTarget.dataset;
+    const binStartDateMS = dayjs(dataset.binStart).valueOf();
+    if (binStartDateMS < this.minSelectedDateMS) {
+      this.minSelectedDate = dataset.binStart ?? "";
     }
-    target.value = this.maxInputValue;
-  }
-  get minInputValue() {
-    return this.translatePositionToDate(this.minSliderX);
-  }
-  get maxInputValue() {
-    return this.translatePositionToDate(this.maxSliderX);
+    const binEndDateMS = dayjs(dataset.binEnd).valueOf();
+    if (binEndDateMS > this.maxSelectedDateMS) {
+      this.maxSelectedDate = dataset.binEnd ?? "";
+    }
+    this.beginEmitUpdateProcess();
   }
   get minSliderTemplate() {
-    const c = SLIDER_CORNER_SIZE;
+    const cs = SLIDER_CORNER_SIZE;
     const sliderShape = `
             M${this.minSliderX},0
-            h-${this.sliderWidth - c}
-            q-${c},0 -${c},${c}
-            v${this.height - c * 2}
-            q0,${c} ${c},${c}
-            h${this.sliderWidth - c}
+            h-${this.sliderWidth - cs}
+            q-${cs},0 -${cs},${cs}
+            v${this.height - cs * 2}
+            q0,${cs} ${cs},${cs}
+            h${this.sliderWidth - cs}
           `;
     return this.generateSliderSVG(this.minSliderX, "slider-min", sliderShape);
   }
   get maxSliderTemplate() {
-    const c = SLIDER_CORNER_SIZE;
+    const cs = SLIDER_CORNER_SIZE;
     const sliderShape = `
             M${this.maxSliderX},0
-            h${this.sliderWidth - c}
-            q${c},0 ${c},${c}
-            v${this.height - c * 2}
-            q0,${c} -${c},${c}
-            h-${this.sliderWidth - c}
+            h${this.sliderWidth - cs}
+            q${cs},0 ${cs},${cs}
+            v${this.height - cs * 2}
+            q0,${cs} -${cs},${cs}
+            h-${this.sliderWidth - cs}
           `;
     return this.generateSliderSVG(this.maxSliderX, "slider-max", sliderShape);
   }
@@ -266,6 +368,7 @@ export let HistogramDateRange = class extends LitElement {
           height="${data.height}"
           @pointerenter="${this.showTooltip}"
           @pointerleave="${this.hideTooltip}"
+          @click="${this.handleBarClick}"
           fill="${x >= this.minSliderX && x <= this.maxSliderX ? barIncludedFill : barExcludedFill}"
           data-num-items="${data.value}"
           data-bin-start="${data.binStart}"
@@ -275,14 +378,20 @@ export let HistogramDateRange = class extends LitElement {
       return bar;
     });
   }
+  formatDate(rawDate) {
+    const date = dayjs(rawDate);
+    return date.isValid() ? date.format(this.dateFormat) : "";
+  }
   get minInputTemplate() {
     return html`
       <input
         id="date-min"
-        placeholder="${DATE_FORMAT}"
+        placeholder="${this.dateFormat}"
         type="text"
-        @change="${this.handleMinDateInput}"
-        .value="${this.minInputValue}"
+        @focus="${this.cancelPendingUpdateEvent}"
+        @blur="${this.handleMinDateInput}"
+        .value="${live(this.minSelectedDate)}"
+        ?disabled="${this.disabled}"
       />
     `;
   }
@@ -290,10 +399,12 @@ export let HistogramDateRange = class extends LitElement {
     return html`
       <input
         id="date-max"
-        placeholder="${DATE_FORMAT}"
+        placeholder="${this.dateFormat}"
         type="text"
-        @change="${this.handleMaxDateInput}"
-        .value="${this.maxInputValue}"
+        @focus="${this.cancelPendingUpdateEvent}"
+        @blur="${this.handleMaxDateInput}"
+        .value="${live(this.maxSelectedDate)}"
+        ?disabled="${this.disabled}"
       />
     `;
   }
@@ -304,51 +415,88 @@ export let HistogramDateRange = class extends LitElement {
           width: ${this.tooltipWidth}px;
           height: ${this.tooltipHeight}px;
           top: ${-9 - this.tooltipHeight}px;
-          left: ${this.tooltipOffset}px;
-          display: ${this.tooltipVisible ? "block" : "none"};
+          left: ${this._tooltipOffset}px;
+          display: ${this._tooltipVisible ? "block" : "none"};
         }
         #tooltip:after {
           left: ${this.tooltipWidth / 2}px;
         }
       </style>
-      <div id="tooltip">${this.tooltipContent}</div>
+      <div id="tooltip">${this._tooltipContent}</div>
+    `;
+  }
+  get noDataTemplate() {
+    return html`
+      <div class="missing-data-message">${this.missingDataMessage}</div>
+    `;
+  }
+  get activityIndicatorTemplate() {
+    if (!this.loading) {
+      return html``;
+    }
+    return html`
+      <ia-activity-indicator mode="processing"> </ia-activity-indicator>
     `;
   }
   render() {
-    if (!this.hasData) {
-      return html`${this.missingDataMessage}`;
+    if (!this.hasBinData) {
+      return this.noDataTemplate;
     }
     return html`
       <div
         id="container"
-        class="noselect ${this.isDragging ? "dragging" : ""}"
+        class="
+          noselect 
+          ${this._isDragging ? "dragging" : ""}
+        "
         style="width: ${this.width}px"
       >
-        ${this.tooltipTemplate}
-        <svg
-          width="${this.width}"
-          height="${this.height}"
-          @pointerleave="${this.drop}"
+        ${this.activityIndicatorTemplate} ${this.tooltipTemplate}
+        <div
+          class="inner-container
+          ${this.disabled ? "disabled" : ""}"
         >
-          ${this.selectedRangeTemplate}
-          <svg id="histogram">${this.histogramTemplate}</svg>
-          ${this.minSliderTemplate} ${this.maxSliderTemplate}
-        </svg>
-        <div id="inputs">
-          ${this.minInputTemplate}
-          <div class="dash">-</div>
-          ${this.maxInputTemplate}
+          <svg
+            width="${this.width}"
+            height="${this.height}"
+            @pointerleave="${this.drop}"
+          >
+            ${this.selectedRangeTemplate}
+            <svg id="histogram">${this.histogramTemplate}</svg>
+            ${this.minSliderTemplate} ${this.maxSliderTemplate}
+          </svg>
+          <div id="inputs">
+            ${this.minInputTemplate}
+            <div class="dash">-</div>
+            ${this.maxInputTemplate}
+          </div>
         </div>
       </div>
     `;
   }
 };
 HistogramDateRange.styles = css`
+    .missing-data-message {
+      text-align: center;
+    }
     #container {
       margin: 0;
       touch-action: none;
       position: relative;
     }
+    .disabled {
+      opacity: 0.3;
+    }
+    ia-activity-indicator {
+      position: absolute;
+      left: calc(50% - 10px);
+      top: 10px;
+      width: 20px;
+      height: 20px;
+      --activityIndicatorLoadingDotColor: ${activityIndicatorColor};
+      --activityIndicatorLoadingRingColor: ${activityIndicatorColor};
+    }
+
     /* prevent selection from interfering with tooltip, especially on mobile */
     /* https://stackoverflow.com/a/4407335/1163042 */
     .noselect {
@@ -425,38 +573,50 @@ __decorate([
   property({type: Number})
 ], HistogramDateRange.prototype, "tooltipHeight", 2);
 __decorate([
-  property({type: String})
+  property({type: Number})
+], HistogramDateRange.prototype, "updateDelay", 2);
+__decorate([
+  property()
 ], HistogramDateRange.prototype, "dateFormat", 2);
 __decorate([
-  property({type: String})
+  property()
 ], HistogramDateRange.prototype, "missingDataMessage", 2);
 __decorate([
+  property()
+], HistogramDateRange.prototype, "minDate", 2);
+__decorate([
+  property()
+], HistogramDateRange.prototype, "maxDate", 2);
+__decorate([
+  property({type: Boolean})
+], HistogramDateRange.prototype, "disabled", 2);
+__decorate([
   property({type: Object})
-], HistogramDateRange.prototype, "data", 2);
+], HistogramDateRange.prototype, "bins", 2);
 __decorate([
-  internalProperty()
-], HistogramDateRange.prototype, "minSliderX", 2);
+  state()
+], HistogramDateRange.prototype, "_tooltipOffset", 2);
 __decorate([
-  internalProperty()
-], HistogramDateRange.prototype, "maxSliderX", 2);
+  state()
+], HistogramDateRange.prototype, "_tooltipContent", 2);
 __decorate([
-  internalProperty()
-], HistogramDateRange.prototype, "tooltipOffset", 2);
+  state()
+], HistogramDateRange.prototype, "_tooltipVisible", 2);
 __decorate([
-  internalProperty()
-], HistogramDateRange.prototype, "tooltipContent", 2);
+  state()
+], HistogramDateRange.prototype, "_isDragging", 2);
 __decorate([
-  internalProperty()
-], HistogramDateRange.prototype, "tooltipVisible", 2);
+  state()
+], HistogramDateRange.prototype, "_isLoading", 2);
 __decorate([
-  internalProperty()
-], HistogramDateRange.prototype, "isDragging", 2);
+  property({type: Boolean})
+], HistogramDateRange.prototype, "loading", 1);
 __decorate([
-  query("#tooltip")
-], HistogramDateRange.prototype, "tooltip", 2);
+  property()
+], HistogramDateRange.prototype, "minSelectedDate", 1);
 __decorate([
-  query("#container")
-], HistogramDateRange.prototype, "container", 2);
+  property()
+], HistogramDateRange.prototype, "maxSelectedDate", 1);
 HistogramDateRange = __decorate([
   customElement("histogram-date-range")
 ], HistogramDateRange);
