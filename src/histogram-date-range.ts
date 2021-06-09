@@ -522,10 +522,18 @@ export class HistogramDateRange extends LitElement {
     const xScale = this._histWidth / this._numBins;
     const barWidth = xScale - 1;
     let x = this.sliderWidth; // start at the left edge of the histogram
+
+    // the stroke-dasharray style below creates a transparent border around the
+    // right edge of the bar, which prevents user from encountering a gap
+    // between adjacent bars (eg when viewing the tooltips or when trying to
+    // extend the range by clicking on a bar)
     return this._histData.map(data => {
       const bar = svg`
         <rect
           class="bar"
+          style='stroke-dasharray: 0 ${barWidth} ${data.height} ${barWidth} 0 ${
+        data.height
+      };'
           x="${x}"
           y="${this.height - data.height}"
           width="${barWidth}"
@@ -649,6 +657,13 @@ export class HistogramDateRange extends LitElement {
       -moz-user-select: none; /* Old versions of Firefox */
       -ms-user-select: none; /* Internet Explorer/Edge */
       user-select: none; /* current Chrome, Edge, Opera and Firefox */
+    }
+    .bar {
+      /* create a transparent border around the hist bars to prevent "gaps" and
+      flickering when moving around between bars. this also helps with handling
+      clicks on the bars, preventing users from being able to click in between
+      bars */
+      stroke: rgba(0, 0, 0, 0);
     }
     .bar:hover {
       fill-opacity: 0.7;
