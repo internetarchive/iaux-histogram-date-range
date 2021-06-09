@@ -356,7 +356,7 @@ export let HistogramDateRange = class extends LitElement {
   }
   get histogramTemplate() {
     const xScale = this._histWidth / this._numBins;
-    const barWidth = xScale - 0.5;
+    const barWidth = xScale - 1;
     let x = this.sliderWidth;
     return this._histData.map((data) => {
       const bar = svg`
@@ -494,7 +494,7 @@ HistogramDateRange.styles = css`
       top: 10px;
       width: 20px;
       height: 20px;
-      --activityIndicatorLoadingDotColor: ${activityIndicatorColor};
+      --activityIndicatorLoadingDotColor: rgba(0, 0, 0, 0);
       --activityIndicatorLoadingRingColor: ${activityIndicatorColor};
     }
 

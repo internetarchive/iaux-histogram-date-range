@@ -645,7 +645,7 @@ export class HistogramDateRange extends LitElement {
       top: 10px;
       width: 20px;
       height: 20px;
-      --activityIndicatorLoadingDotColor: ${activityIndicatorColor};
+      --activityIndicatorLoadingDotColor: rgba(0, 0, 0, 0);
       --activityIndicatorLoadingRingColor: ${activityIndicatorColor};
     }
 
