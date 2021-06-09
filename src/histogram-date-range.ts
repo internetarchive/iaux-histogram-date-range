@@ -664,6 +664,7 @@ export class HistogramDateRange extends LitElement {
       clicks on the bars, preventing users from being able to click in between
       bars */
       stroke: rgba(0, 0, 0, 0);
+      stroke-width: 2px;
     }
     .bar:hover {
       fill-opacity: 0.7;
