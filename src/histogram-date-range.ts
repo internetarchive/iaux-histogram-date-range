@@ -482,6 +482,7 @@ export class HistogramDateRange extends LitElement {
     return svg`
     <svg
       id="${id}"
+      class="draggable ${this._isDragging ? 'dragging' : ''}"
       @pointerdown="${this.drag}"
     >
       <path d="${sliderShape} z" fill="${sliderFill}" />

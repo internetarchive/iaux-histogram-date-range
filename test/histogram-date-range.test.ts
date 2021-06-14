@@ -158,12 +158,15 @@ describe('HistogramDateRange', () => {
 
     // initial state
     expect(minSlider.getBoundingClientRect().x).to.eq(108);
-    expect(minSlider.classList[0]).to.be.undefined;
+    expect(Array.from(minSlider.classList).join(' ')).to.eq('draggable');
 
     // pointer down
     minSlider.dispatchEvent(new PointerEvent('pointerdown'));
     await aTimeout(20);
-    expect(Array.from(container.classList)).to.include('dragging'); // cursor changes to 'grab'
+    // cursor changes to 'grab'
+    expect(Array.from(minSlider.classList).join(' ')).to.eq(
+      'draggable dragging'
+    );
 
     // slide to right
     window.dispatchEvent(new PointerEvent('pointermove', { clientX: 70 }));
