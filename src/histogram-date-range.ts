@@ -47,6 +47,12 @@ interface HistogramItem {
   binEnd: string;
 }
 
+interface BarDataset extends DOMStringMap {
+  numItems: string;
+  binStart: string;
+  binEnd: string;
+}
+
 @customElement('histogram-date-range')
 export class HistogramDateRange extends LitElement {
   /* eslint-disable lines-between-class-members */
@@ -224,7 +230,7 @@ export class HistogramDateRange extends LitElement {
     }
     const target = e.currentTarget as SVGRectElement;
     const x = target.x.baseVal.value + this.sliderWidth / 2;
-    const dataset = target.dataset;
+    const dataset = target.dataset as BarDataset;
     const itemsText = `item${dataset.numItems !== '1' ? 's' : ''}`;
 
     this._tooltipOffset =
@@ -428,14 +434,14 @@ export class HistogramDateRange extends LitElement {
   }
 
   private handleBarClick(e: InputEvent): void {
-    const dataset = (e.currentTarget as SVGRectElement).dataset as DOMStringMap;
+    const dataset = (e.currentTarget as SVGRectElement).dataset as BarDataset;
     const binStartDateMS = dayjs(dataset.binStart).valueOf();
     if (binStartDateMS < this.minSelectedDateMS) {
-      this.minSelectedDate = dataset.binStart ?? '';
+      this.minSelectedDate = dataset.binStart;
     }
     const binEndDateMS = dayjs(dataset.binEnd).valueOf();
     if (binEndDateMS > this.maxSelectedDateMS) {
-      this.maxSelectedDate = dataset.binEnd ?? '';
+      this.maxSelectedDate = dataset.binEnd;
     }
     this.beginEmitUpdateProcess();
   }
@@ -482,7 +488,9 @@ export class HistogramDateRange extends LitElement {
     return svg`
     <svg
       id="${id}"
-      class="draggable ${this._isDragging ? 'dragging' : ''}"
+      class="
+      ${this.disabled ? '' : 'draggable'} 
+      ${this._isDragging ? 'dragging' : ''}"
       @pointerdown="${this.drag}"
     >
       <path d="${sliderShape} z" fill="${sliderFill}" />

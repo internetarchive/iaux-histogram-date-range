@@ -315,6 +315,37 @@ describe('HistogramDateRange', () => {
     expect(maxDateInput.value).to.eq('2019');
   });
 
+  it('extends the selected range when the histogram is clicked outside of the current range', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range
+          minDate="1900"
+          maxDate="2020"
+          minSelectedDate="1950"
+          maxSelectedDate="1955"
+          bins="[33, 1, 1, 1, 10, 10, 1, 1, 1, 50, 100]"
+        >
+        </histogram-date-range>
+      `
+    );
+
+    const leftBarToClick = Array.from(
+      el.shadowRoot?.querySelectorAll('.bar') as NodeList
+    )[1]; // click on second bar to the left
+
+    leftBarToClick.dispatchEvent(new Event('click'));
+    await aTimeout(20);
+    expect(el.minSelectedDate).to.eq('1910'); // range was extended to left
+
+    const rightBarToClick = Array.from(
+      el.shadowRoot?.querySelectorAll('.bar') as NodeList
+    )[8]; // click on second bar from the right
+
+    rightBarToClick.dispatchEvent(new Event('click'));
+    await aTimeout(20);
+    expect(el.maxSelectedDate).to.eq('1998'); // range was extended to right
+  });
+
   it('handles invalid pre-selected range by defaulting to overall max and min', async () => {
     const el = await fixture<HistogramDateRange>(
       html`
@@ -374,6 +405,24 @@ describe('HistogramDateRange', () => {
         ?.querySelector('.inner-container')
         ?.classList.contains('disabled')
     ).to.eq(true);
+
+    const minSlider = el.shadowRoot?.querySelector('#slider-min') as SVGElement;
+
+    expect(Math.round(minSlider.getBoundingClientRect().x)).to.eq(8); // initial state
+
+    // attempt to slide to right
+    minSlider.dispatchEvent(new PointerEvent('pointerdown'));
+    await aTimeout(20);
+
+    // cursor is not draggable if disabled
+    expect(Array.from(minSlider.classList).join(' ')).to.eq('');
+
+    // attempt to slide to right
+    window.dispatchEvent(new PointerEvent('pointermove', { clientX: 70 }));
+    await aTimeout(20);
+
+    // slider does not moved if element disabled
+    expect(Math.round(minSlider.getBoundingClientRect().x)).to.eq(8);
   });
 
   it('has a loading state with an activity indicator', async () => {
