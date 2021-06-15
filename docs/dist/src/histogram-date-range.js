@@ -100,7 +100,7 @@ export let HistogramDateRange = class extends LitElement {
     super.disconnectedCallback();
   }
   updated(changedProps) {
-    if (changedProps.has("bins") || changedProps.has("Date")) {
+    if (changedProps.has("bins") || changedProps.has("minDate") || changedProps.has("maxDate") || changedProps.has("minSelectedDate") || changedProps.has("maxSelectedDate")) {
       this.handleDataUpdate();
     }
   }
@@ -287,11 +287,11 @@ export let HistogramDateRange = class extends LitElement {
     const dataset = e.currentTarget.dataset;
     const binStartDateMS = dayjs(dataset.binStart).valueOf();
     if (binStartDateMS < this.minSelectedDateMS) {
-      this.minSelectedDate = dataset.binStart ?? "";
+      this.minSelectedDate = dataset.binStart;
     }
     const binEndDateMS = dayjs(dataset.binEnd).valueOf();
     if (binEndDateMS > this.maxSelectedDateMS) {
-      this.maxSelectedDate = dataset.binEnd ?? "";
+      this.maxSelectedDate = dataset.binEnd;
     }
     this.beginEmitUpdateProcess();
   }
@@ -324,7 +324,9 @@ export let HistogramDateRange = class extends LitElement {
     return svg`
     <svg
       id="${id}"
-      class="draggable ${this._isDragging ? "dragging" : ""}"
+      class="
+      ${this.disabled ? "" : "draggable"} 
+      ${this._isDragging ? "dragging" : ""}"
       @pointerdown="${this.drag}"
     >
       <path d="${sliderShape} z" fill="${sliderFill}" />

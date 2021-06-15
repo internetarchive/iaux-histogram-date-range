@@ -99,7 +99,14 @@ export class HistogramDateRange extends LitElement {
   }
 
   updated(changedProps: PropertyValues): void {
-    if (changedProps.has('bins') || changedProps.has('Date')) {
+    // check for changes that would affect bin data calculations
+    if (
+      changedProps.has('bins') ||
+      changedProps.has('minDate') ||
+      changedProps.has('maxDate') ||
+      changedProps.has('minSelectedDate') ||
+      changedProps.has('maxSelectedDate')
+    ) {
       this.handleDataUpdate();
     }
   }

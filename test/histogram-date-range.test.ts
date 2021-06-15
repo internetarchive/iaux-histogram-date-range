@@ -67,7 +67,6 @@ describe('HistogramDateRange', () => {
     // valid min date
     minDateInput.value = '1950';
     minDateInput.dispatchEvent(new Event('blur'));
-    await aTimeout(20);
 
     expect(Math.floor(el.minSliderX)).to.eq(84);
     expect(el.minSelectedDate).to.eq('1/1/1950'); // set to correct format
@@ -75,7 +74,6 @@ describe('HistogramDateRange', () => {
     // attempt to set date earlier than first item
     minDateInput.value = 'October 1, 1850';
     minDateInput.dispatchEvent(new Event('blur'));
-    await aTimeout(100);
 
     expect(Math.floor(el.minSliderX)).to.eq(SLIDER_WIDTH); // leftmost valid position
     expect(el.minSelectedDate).to.eq('1/1/1900'); // leftmost valid date
@@ -89,7 +87,7 @@ describe('HistogramDateRange', () => {
     // set valid max date
     maxDateInput.value = 'March 12 1975';
     maxDateInput.dispatchEvent(new Event('blur'));
-    await aTimeout(20);
+    await el.updateComplete;
 
     expect(Math.floor(el.maxSliderX)).to.eq(121);
     expect(maxDateInput.value).to.eq('3/12/1975');
@@ -97,7 +95,7 @@ describe('HistogramDateRange', () => {
     // attempt to set date later than last item
     maxDateInput.value = 'Dec 31 2199';
     maxDateInput.dispatchEvent(new Event('blur'));
-    await aTimeout(20);
+    await el.updateComplete;
 
     expect(el.maxSliderX).to.eq(WIDTH - SLIDER_WIDTH); // rightmost valid position
     expect(maxDateInput.value).to.eq('12/4/2020'); // rightmost valid date
@@ -113,7 +111,7 @@ describe('HistogramDateRange', () => {
 
     minDateInput.value = 'May 17, 1961';
     minDateInput.dispatchEvent(new Event('blur'));
-    await aTimeout(20);
+    await el.updateComplete;
 
     expect(Math.floor(el.minSliderX)).to.eq(101);
     expect(minDateInput.value).to.eq('5/17/1961');
@@ -121,7 +119,7 @@ describe('HistogramDateRange', () => {
     // enter invalid value
     minDateInput.value = 'invalid';
     minDateInput.dispatchEvent(new Event('blur'));
-    await aTimeout(20);
+    await el.updateComplete;
 
     expect(Math.floor(el.minSliderX)).to.eq(101); // does not move
     expect(minDateInput.value).to.eq('5/17/1961'); // resets back to previous date
@@ -138,8 +136,8 @@ describe('HistogramDateRange', () => {
     // enter invalid value
     maxDateInput.value = 'Abc 12, 1YYY';
     maxDateInput.dispatchEvent(new Event('blur'));
+    await el.updateComplete;
 
-    await aTimeout(20);
     expect(Math.floor(el.maxSliderX)).to.eq(WIDTH - SLIDER_WIDTH); // does not move
     expect(maxDateInput.value).to.eq('12/4/2020'); // resets back to previous date
   });
@@ -162,15 +160,16 @@ describe('HistogramDateRange', () => {
 
     // pointer down
     minSlider.dispatchEvent(new PointerEvent('pointerdown'));
-    await aTimeout(20);
+    await el.updateComplete;
+
     // cursor changes to 'grab'
-    expect(Array.from(minSlider.classList).join(' ')).to.eq(
-      'draggable dragging'
-    );
+    const classList = minSlider.classList;
+    expect(classList.contains('draggable')).to.be.true;
+    expect(classList.contains('dragging')).to.be.true;
 
     // slide to right
     window.dispatchEvent(new PointerEvent('pointermove', { clientX: 70 }));
-    await aTimeout(20);
+    await el.updateComplete;
 
     // slider has moved
     expect(Math.round(minSlider.getBoundingClientRect().x)).to.eq(168);
@@ -179,7 +178,8 @@ describe('HistogramDateRange', () => {
 
     // stop dragging
     window.dispatchEvent(new PointerEvent('pointerup'));
-    await aTimeout(20);
+    await el.updateComplete;
+
     // cursor returns to normal
     expect(Array.from(container.classList)).not.to.include('dragging');
 
@@ -195,18 +195,18 @@ describe('HistogramDateRange', () => {
     // slide to left
     maxSlider.dispatchEvent(new PointerEvent('pointerdown', { clientX: 195 }));
     window.dispatchEvent(new PointerEvent('pointermove', { clientX: 160 }));
-    await aTimeout(20);
+    await el.updateComplete;
 
     // slider has moved
     expect(Math.round(maxSlider.getBoundingClientRect().x)).to.eq(268);
     // max date is updated
     expect(maxDateInput.value).to.eq('10/8/2000');
-    await aTimeout(20);
+    await el.updateComplete;
 
     // try to slide min slider past max slider
     minSlider.dispatchEvent(new PointerEvent('pointerdown', { clientX: 62 }));
     window.dispatchEvent(new PointerEvent('pointermove', { clientX: 190 }));
-    await aTimeout(20);
+    await el.updateComplete;
 
     // slider moves all the way to meet the right slider
     expect(Math.round(minSlider.getBoundingClientRect().x)).to.eq(258);
@@ -214,28 +214,57 @@ describe('HistogramDateRange', () => {
     // try to slide max slider past min slider
     maxSlider.dispatchEvent(new PointerEvent('pointerdown', { clientX: 120 }));
     window.dispatchEvent(new PointerEvent('pointermove', { clientX: 50 }));
-    await aTimeout(20);
+    await el.updateComplete;
     expect(Math.round(maxSlider.getBoundingClientRect().x)).to.eq(268); // max slider didn't move
   });
 
-  it('emits a custom event when the element date range changes', async () => {
+  it("emits a custom event when the element's date range changes", async () => {
     const el = await createCustomElementInHTMLContainer();
+    el.updateDelay = 30; // set slightly longer debounce delay for these tests
+
     const minDateInput = el.shadowRoot?.querySelector(
       '#date-min'
     ) as HTMLInputElement;
-    const dateRangeUpdatedEventListener = oneEvent(
-      el,
-      'histogramDateRangeUpdated'
-    );
+    const updateEventPromise = oneEvent(el, 'histogramDateRangeUpdated');
 
     // simulate typing a new value into input
     minDateInput.value = '1955';
     minDateInput.dispatchEvent(new Event('blur'));
 
     // verify that event is emitted
-    const { detail } = await dateRangeUpdatedEventListener;
+    const { detail } = await updateEventPromise;
     expect(detail.minDate).to.equal('1/1/1955');
     expect(detail.maxDate).to.equal('12/4/2020');
+
+    let eventCount = 0;
+    el.addEventListener('histogramDateRangeUpdated', () => (eventCount += 1));
+
+    // events are not sent if no change since the last event that was sent
+    minDateInput.value = '1955';
+    minDateInput.dispatchEvent(new Event('blur'));
+    await aTimeout(60);
+    expect(eventCount).to.equal(0);
+
+    const updateEventPromise2 = oneEvent(el, 'histogramDateRangeUpdated');
+
+    // with the debounce, multiple quick changes only result in one event sent
+    minDateInput.value = '1965';
+    minDateInput.dispatchEvent(new Event('blur'));
+    await aTimeout(10); // wait less than the debounce delay
+
+    minDateInput.dispatchEvent(new Event('focus'));
+    minDateInput.value = '1975';
+    minDateInput.dispatchEvent(new Event('blur'));
+    await aTimeout(10);
+
+    minDateInput.dispatchEvent(new Event('focus'));
+    minDateInput.value = '1985';
+    minDateInput.dispatchEvent(new Event('blur'));
+    await aTimeout(10);
+
+    const event2 = await updateEventPromise2;
+    expect(event2.detail.minDate).to.equal('1/1/1985');
+    expect(eventCount).to.equal(1); // only one event was fired
   });
 
   it('shows/hides tooltip when hovering over (or pointing at) a bar', async () => {
@@ -248,19 +277,19 @@ describe('HistogramDateRange', () => {
 
     // hover
     bars[0].dispatchEvent(new PointerEvent('pointerenter'));
-    await aTimeout(20);
+    await el.updateComplete;
     expect(tooltip.innerText).to.match(/^33 items\n1\/1\/1900 - 4\/23\/1940/);
     expect(getComputedStyle(tooltip).display).to.eq('block');
 
     // leave
     bars[0].dispatchEvent(new PointerEvent('pointerleave'));
-    await aTimeout(20);
+    await el.updateComplete;
     expect(getComputedStyle(tooltip).display).to.eq('none');
     expect(tooltip.innerText).to.eq('');
 
     // ensure singular item is not pluralized
     bars[1].dispatchEvent(new PointerEvent('pointerenter'));
-    await aTimeout(20);
+    await el.updateComplete;
     expect(tooltip.innerText).to.match(/^1 item\n4\/23\/1940 - 8\/13\/1980/);
   });
 
@@ -276,11 +305,11 @@ describe('HistogramDateRange', () => {
     // pointer down and slide right
     minSlider.dispatchEvent(new PointerEvent('pointerdown'));
     window.dispatchEvent(new PointerEvent('pointermove', { clientX: 100 }));
-    await aTimeout(20);
+    await el.updateComplete;
 
     // hover over bar
     bars[0].dispatchEvent(new PointerEvent('pointerenter'));
-    await aTimeout(20);
+    await el.updateComplete;
     // tooltip display is suppressed while dragging
     expect(tooltip.style.display).to.eq('');
   });
@@ -334,7 +363,6 @@ describe('HistogramDateRange', () => {
     )[1]; // click on second bar to the left
 
     leftBarToClick.dispatchEvent(new Event('click'));
-    await aTimeout(20);
     expect(el.minSelectedDate).to.eq('1910'); // range was extended to left
 
     const rightBarToClick = Array.from(
@@ -342,7 +370,6 @@ describe('HistogramDateRange', () => {
     )[8]; // click on second bar from the right
 
     rightBarToClick.dispatchEvent(new Event('click'));
-    await aTimeout(20);
     expect(el.maxSelectedDate).to.eq('1998'); // range was extended to right
   });
 
@@ -412,14 +439,14 @@ describe('HistogramDateRange', () => {
 
     // attempt to slide to right
     minSlider.dispatchEvent(new PointerEvent('pointerdown'));
-    await aTimeout(20);
+    await el.updateComplete;
 
     // cursor is not draggable if disabled
     expect(Array.from(minSlider.classList).join(' ')).to.eq('');
 
     // attempt to slide to right
     window.dispatchEvent(new PointerEvent('pointermove', { clientX: 70 }));
-    await aTimeout(20);
+    await el.updateComplete;
 
     // slider does not moved if element disabled
     expect(Math.round(minSlider.getBoundingClientRect().x)).to.eq(8);
