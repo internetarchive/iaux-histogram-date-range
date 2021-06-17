@@ -1,5 +1,5 @@
 import { V, w } from './common/lit-html-e67c9f49.js';
-export { T as html, x as svg } from './common/lit-html-e67c9f49.js';
+export { T as html, A as nothing, x as svg } from './common/lit-html-e67c9f49.js';
 
 /**
  * @license

@@ -12,6 +12,7 @@ var __decorate = (decorators, target, key, kind) => {
 import {
   css,
   html,
+  nothing,
   LitElement,
   svg
 } from "../../_snowpack/pkg/lit.js";
@@ -26,19 +27,21 @@ const TOOLTIP_WIDTH = 125;
 const TOOLTIP_HEIGHT = 30;
 const DATE_FORMAT = "YYYY";
 const MISSING_DATA = "no data";
-const UPDATE_DEBOUNCE_DELAY_MS = 1e3;
+const UPDATE_DEBOUNCE_DELAY_MS = 0;
 const SLIDER_CORNER_SIZE = 4;
-const sliderFill = css`var(--histogramDateRangeSliderFill, #4B65FE)`;
-const selectedRangeFill = css`var(--histogramDateRangeSelectedRangeFill, #DBE0FF)`;
+const sliderColor = css`var(--histogramDateRangeSliderColor, #4B65FE)`;
+const selectedRangeColor = css`var(--histogramDateRangeSelectedRangeColor, #DBE0FF)`;
 const barIncludedFill = css`var(--histogramDateRangeBarIncludedFill, #2C2C2C)`;
 const activityIndicatorColor = css`var(--histogramDateRangeActivityIndicator, #2C2C2C)`;
 const barExcludedFill = css`var(--histogramDateRangeBarExcludedFill, #CCCCCC)`;
 const inputBorder = css`var(--histogramDateRangeInputBorder, 0.5px solid #2C2C2C)`;
 const inputWidth = css`var(--histogramDateRangeInputWidth, 35px)`;
 const inputFontSize = css`var(--histogramDateRangeInputFontSize, 1.2rem)`;
+const inputFontFamily = css`var(--histogramDateRangeInputFontFamily, sans-serif)`;
 const tooltipBackgroundColor = css`var(--histogramDateRangeTooltipBackgroundColor, #2C2C2C)`;
 const tooltipTextColor = css`var(--histogramDateRangeTooltipTextColor, #FFFFFF)`;
 const tooltipFontSize = css`var(--histogramDateRangeTooltipFontSize, 1.1rem)`;
+const tooltipFontFamily = css`var(--histogramDateRangeTooltipFontFamily, sans-serif)`;
 export let HistogramDateRange = class extends LitElement {
   constructor() {
     super(...arguments);
@@ -329,7 +332,7 @@ export let HistogramDateRange = class extends LitElement {
       ${this._isDragging ? "dragging" : ""}"
       @pointerdown="${this.drag}"
     >
-      <path d="${sliderShape} z" fill="${sliderFill}" />
+      <path d="${sliderShape} z" fill="${sliderColor}" />
       <rect
         x="${sliderPositionX - this.sliderWidth * k + this.sliderWidth * 0.4 * k}"
         y="${this.height / 3}"
@@ -354,7 +357,7 @@ export let HistogramDateRange = class extends LitElement {
         y="0"
         width="${this.maxSliderX - this.minSliderX}"
         height="${this.height}"
-        fill="${selectedRangeFill}"
+        fill="${selectedRangeColor}"
       />`;
   }
   get histogramTemplate() {
@@ -436,7 +439,7 @@ export let HistogramDateRange = class extends LitElement {
   }
   get activityIndicatorTemplate() {
     if (!this.loading) {
-      return html``;
+      return nothing;
     }
     return html`
       <ia-activity-indicator mode="processing"> </ia-activity-indicator>
@@ -536,7 +539,7 @@ HistogramDateRange.styles = css`
       border-radius: 3px;
       padding: 2px;
       font-size: ${tooltipFontSize};
-      font-family: sans-serif;
+      font-family: ${tooltipFontFamily};
       touch-action: none;
       pointer-events: none;
     }
@@ -573,6 +576,7 @@ HistogramDateRange.styles = css`
       border-radius: 2px !important;
       text-align: center;
       font-size: ${inputFontSize};
+      font-family: ${inputFontFamily};
     }
   `;
 __decorate([

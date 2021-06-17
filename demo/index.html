@@ -12,7 +12,7 @@
         background: white;
       }
       .container {
-        margin-top: 50px;
+        margin-top: 20px;
         display: grid;
         justify-content: center;
       }
@@ -34,8 +34,9 @@
     import '../dist/src/histogram-date-range.js';
     // listen to events from the component and display the data received from them
     document.addEventListener('histogramDateRangeUpdated', e => {
-      document.querySelector('.received-events').innerHTML +=
-        '\n' + JSON.stringify(e.detail);
+      document.querySelector('.received-events').innerHTML = JSON.stringify(
+        e.detail
+      );
     });
   </script>
   <body>
@@ -60,14 +61,19 @@
     </div>
 
     <div class="container">
-      <div class="description">default range with custom date format</div>
+      <div class="description">
+        default range with custom styling and date format
+      </div>
       <histogram-date-range
         width="300"
         height="50"
         tooltipWidth="140"
-        updateDelay="2000"
         dateFormat="DD MMM YYYY"
         style="
+          --histogramDateRangeSliderColor: #d8b384;
+          --histogramDateRangeSelectedRangeColor: #f3f0d7;
+          --histogramDateRangeTooltipFontFamily: serif;
+          --histogramDateRangeInputFontFamily: serif;
           --histogramDateRangeTooltipFontSize: 1rem;
           --histogramDateRangeInputWidth: 85px;
         "
@@ -112,17 +118,14 @@
         );
         histogram.minDate = '1950';
         histogram.maxDate = '2000';
-        // generate an array like [0, 1, 2, ... 49]
+        // generate array of [0, 1, 2, ... 49]
         histogram.bins = [...Array(50).keys()];
       });
     </script>
 
     <div class="container">
       <div class="description">empty data</div>
-      <histogram-date-range
-        bins=""
-        missingDataMessage="no data..."
-      ></histogram-date-range>
+      <histogram-date-range missingDataMessage="no data..."></histoghistogram-date-range>
     </div>
   </body>
 </html>
