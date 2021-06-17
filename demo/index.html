@@ -42,10 +42,13 @@
     <pre class="received-events"></pre>
 
     <div class="container">
-      <div class="description">pre-selected range with default date format</div>
+      <div class="description">
+        pre-selected range with 1000ms debounce delay
+      </div>
       <histogram-date-range
         minDate="1400"
         maxDate="2021"
+        updateDelay="1000"
         minSelectedDate="1800"
         maxSelectedDate="1900"
         bins="[ 74, 67, 17, 66, 49, 93, 47, 61, 32, 46, 53, 2,
@@ -99,11 +102,8 @@
     </script>
 
     <div class="container">
-      <div class="description">data set up with js; no debounce delay</div>
-      <histogram-date-range
-        id="js-setup"
-        updateDelay="0"
-      ></histogram-date-range>
+      <div class="description">data set up with js</div>
+      <histogram-date-range id="js-setup"></histogram-date-range>
     </div>
     <script>
       document.addEventListener('DOMContentLoaded', function () {

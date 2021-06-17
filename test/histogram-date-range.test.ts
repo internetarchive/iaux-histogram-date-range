@@ -13,7 +13,6 @@ const subject = html`
     tooltipWidth="140"
     height="50"
     dateFormat="M/D/YYYY"
-    updateDelay="10"
     minDate="1900"
     maxDate="Dec 4, 2020"
     bins="[33, 1, 100]"
@@ -220,7 +219,7 @@ describe('HistogramDateRange', () => {
 
   it("emits a custom event when the element's date range changes", async () => {
     const el = await createCustomElementInHTMLContainer();
-    el.updateDelay = 30; // set slightly longer debounce delay for these tests
+    el.updateDelay = 30; // set debounce delay of 30ms
 
     const minDateInput = el.shadowRoot?.querySelector(
       '#date-min'
@@ -231,8 +230,9 @@ describe('HistogramDateRange', () => {
     minDateInput.value = '1955';
     minDateInput.dispatchEvent(new Event('blur'));
 
-    // verify that event is emitted
+    // will wait longer than debounce delay
     const { detail } = await updateEventPromise;
+    // verify that event is emitted
     expect(detail.minDate).to.equal('1/1/1955');
     expect(detail.maxDate).to.equal('12/4/2020');
 
@@ -242,7 +242,7 @@ describe('HistogramDateRange', () => {
     // events are not sent if no change since the last event that was sent
     minDateInput.value = '1955';
     minDateInput.dispatchEvent(new Event('blur'));
-    await aTimeout(60);
+    await aTimeout(60); // wait longer than debounce delay
     expect(eventCount).to.equal(0);
 
     const updateEventPromise2 = oneEvent(el, 'histogramDateRangeUpdated');

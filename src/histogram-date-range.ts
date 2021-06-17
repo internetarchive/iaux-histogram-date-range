@@ -20,7 +20,7 @@ const TOOLTIP_WIDTH = 125;
 const TOOLTIP_HEIGHT = 30;
 const DATE_FORMAT = 'YYYY';
 const MISSING_DATA = 'no data';
-const UPDATE_DEBOUNCE_DELAY_MS = 1000;
+const UPDATE_DEBOUNCE_DELAY_MS = 0;
 
 // this constant is not set up to be overridden
 const SLIDER_CORNER_SIZE = 4;
