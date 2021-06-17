@@ -19,18 +19,6 @@ const isCEPolyfill = typeof window !== 'undefined' &&
     window.customElements.polyfillWrapFlushCallback !==
         undefined;
 /**
- * Reparents nodes, starting from `start` (inclusive) to `end` (exclusive),
- * into another container (could be the same container), before `before`. If
- * `before` is null, it appends the nodes to the container.
- */
-const reparentNodes = (container, start, end = null, before = null) => {
-    while (start !== end) {
-        const n = start.nextSibling;
-        container.insertBefore(start, before);
-        start = n;
-    }
-};
-/**
  * Removes nodes, starting from `start` (inclusive) to `end` (exclusive), from
  * `container`.
  */
@@ -656,26 +644,6 @@ class TemplateResult {
             value = policy.createHTML(value);
         }
         template.innerHTML = value;
-        return template;
-    }
-}
-/**
- * A TemplateResult for SVG fragments.
- *
- * This class wraps HTML in an `<svg>` tag in order to parse its contents in the
- * SVG namespace, then modifies the template to remove the `<svg>` tag so that
- * clones only container the original fragment.
- */
-class SVGTemplateResult extends TemplateResult {
-    getHTML() {
-        return `<svg>${super.getHTML()}</svg>`;
-    }
-    getTemplateElement() {
-        const template = super.getTemplateElement();
-        const content = template.content;
-        const svgElement = content.firstChild;
-        content.removeChild(svgElement);
-        reparentNodes(content, svgElement.firstChild);
         return template;
     }
 }
@@ -1312,11 +1280,6 @@ if (typeof window !== 'undefined') {
  * render to and update a container.
  */
 const html = (strings, ...values) => new TemplateResult(strings, values, 'html', defaultTemplateProcessor);
-/**
- * Interprets a template literal as an SVG template that can efficiently
- * render to and update a container.
- */
-const svg = (strings, ...values) => new SVGTemplateResult(strings, values, 'svg', defaultTemplateProcessor);
 
 /**
  * @license
@@ -2261,199 +2224,6 @@ _a = finalized;
 UpdatingElement[_a] = true;
 
 /**
- * @license
- * Copyright (c) 2017 The Polymer Project Authors. All rights reserved.
- * This code may only be used under the BSD style license found at
- * http://polymer.github.io/LICENSE.txt
- * The complete set of authors may be found at
- * http://polymer.github.io/AUTHORS.txt
- * The complete set of contributors may be found at
- * http://polymer.github.io/CONTRIBUTORS.txt
- * Code distributed by Google as part of the polymer project is also
- * subject to an additional IP rights grant found at
- * http://polymer.github.io/PATENTS.txt
- */
-const legacyCustomElement = (tagName, clazz) => {
-    window.customElements.define(tagName, clazz);
-    // Cast as any because TS doesn't recognize the return type as being a
-    // subtype of the decorated class when clazz is typed as
-    // `Constructor<HTMLElement>` for some reason.
-    // `Constructor<HTMLElement>` is helpful to make sure the decorator is
-    // applied to elements however.
-    // tslint:disable-next-line:no-any
-    return clazz;
-};
-const standardCustomElement = (tagName, descriptor) => {
-    const { kind, elements } = descriptor;
-    return {
-        kind,
-        elements,
-        // This callback is called once the class is otherwise fully defined
-        finisher(clazz) {
-            window.customElements.define(tagName, clazz);
-        }
-    };
-};
-/**
- * Class decorator factory that defines the decorated class as a custom element.
- *
- * ```
- * @customElement('my-element')
- * class MyElement {
- *   render() {
- *     return html``;
- *   }
- * }
- * ```
- * @category Decorator
- * @param tagName The name of the custom element to define.
- */
-const customElement = (tagName) => (classOrDescriptor) => (typeof classOrDescriptor === 'function') ?
-    legacyCustomElement(tagName, classOrDescriptor) :
-    standardCustomElement(tagName, classOrDescriptor);
-const standardProperty = (options, element) => {
-    // When decorating an accessor, pass it through and add property metadata.
-    // Note, the `hasOwnProperty` check in `createProperty` ensures we don't
-    // stomp over the user's accessor.
-    if (element.kind === 'method' && element.descriptor &&
-        !('value' in element.descriptor)) {
-        return Object.assign(Object.assign({}, element), { finisher(clazz) {
-                clazz.createProperty(element.key, options);
-            } });
-    }
-    else {
-        // createProperty() takes care of defining the property, but we still
-        // must return some kind of descriptor, so return a descriptor for an
-        // unused prototype field. The finisher calls createProperty().
-        return {
-            kind: 'field',
-            key: Symbol(),
-            placement: 'own',
-            descriptor: {},
-            // When @babel/plugin-proposal-decorators implements initializers,
-            // do this instead of the initializer below. See:
-            // https://github.com/babel/babel/issues/9260 extras: [
-            //   {
-            //     kind: 'initializer',
-            //     placement: 'own',
-            //     initializer: descriptor.initializer,
-            //   }
-            // ],
-            initializer() {
-                if (typeof element.initializer === 'function') {
-                    this[element.key] = element.initializer.call(this);
-                }
-            },
-            finisher(clazz) {
-                clazz.createProperty(element.key, options);
-            }
-        };
-    }
-};
-const legacyProperty = (options, proto, name) => {
-    proto.constructor
-        .createProperty(name, options);
-};
-/**
- * A property decorator which creates a LitElement property which reflects a
- * corresponding attribute value. A [[`PropertyDeclaration`]] may optionally be
- * supplied to configure property features.
- *
- * This decorator should only be used for public fields. Private or protected
- * fields should use the [[`internalProperty`]] decorator.
- *
- * @example
- * ```ts
- * class MyElement {
- *   @property({ type: Boolean })
- *   clicked = false;
- * }
- * ```
- * @category Decorator
- * @ExportDecoratedItems
- */
-function property(options) {
-    // tslint:disable-next-line:no-any decorator
-    return (protoOrDescriptor, name) => (name !== undefined) ?
-        legacyProperty(options, protoOrDescriptor, name) :
-        standardProperty(options, protoOrDescriptor);
-}
-/**
- * Declares a private or protected property that still triggers updates to the
- * element when it changes.
- *
- * Properties declared this way must not be used from HTML or HTML templating
- * systems, they're solely for properties internal to the element. These
- * properties may be renamed by optimization tools like closure compiler.
- * @category Decorator
- */
-function internalProperty(options) {
-    return property({ attribute: false, hasChanged: options === null || options === void 0 ? void 0 : options.hasChanged });
-}
-/**
- * A property decorator that converts a class property into a getter that
- * executes a querySelector on the element's renderRoot.
- *
- * @param selector A DOMString containing one or more selectors to match.
- * @param cache An optional boolean which when true performs the DOM query only
- * once and caches the result.
- *
- * See: https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelector
- *
- * @example
- *
- * ```ts
- * class MyElement {
- *   @query('#first')
- *   first;
- *
- *   render() {
- *     return html`
- *       <div id="first"></div>
- *       <div id="second"></div>
- *     `;
- *   }
- * }
- * ```
- * @category Decorator
- */
-function query(selector, cache) {
-    return (protoOrDescriptor, 
-    // tslint:disable-next-line:no-any decorator
-    name) => {
-        const descriptor = {
-            get() {
-                return this.renderRoot.querySelector(selector);
-            },
-            enumerable: true,
-            configurable: true,
-        };
-        if (cache) {
-            const key = typeof name === 'symbol' ? Symbol() : `__${name}`;
-            descriptor.get = function () {
-                if (this[key] === undefined) {
-                    (this[key] =
-                        this.renderRoot.querySelector(selector));
-                }
-                return this[key];
-            };
-        }
-        return (name !== undefined) ?
-            legacyQuery(descriptor, protoOrDescriptor, name) :
-            standardQuery(descriptor, protoOrDescriptor);
-    };
-}
-const legacyQuery = (descriptor, proto, name) => {
-    Object.defineProperty(proto, name, descriptor);
-};
-const standardQuery = (descriptor, element) => ({
-    kind: 'method',
-    placement: 'prototype',
-    key: element.key,
-    descriptor,
-});
-
-/**
 @license
 Copyright (c) 2019 The Polymer Project Authors. All rights reserved.
 This code may only be used under the BSD style license found at
@@ -2756,4 +2526,165 @@ LitElement['finalized'] = true;
  */
 LitElement.render = render$1;
 
-export { LitElement, css, customElement, html, internalProperty, property, query, svg };
+const IAActivityIndicatorMode = Object.freeze({
+  processing: 'processing',
+  complete: 'complete',
+});
+
+class IAActivityIndicator extends LitElement {
+  static get properties() {
+    return {
+      mode: { type: String },
+    };
+  }
+
+  constructor() {
+    super();
+    this.mode = IAActivityIndicatorMode.processing;
+  }
+
+  render() {
+    return html`
+      <div class="${this.mode}">
+        <svg
+          viewBox="0 0 120 120"
+          preserveAspectRatio="none"
+          version="1.1"
+          xmlns="http://www.w3.org/2000/svg"
+          xmlns:xlink="http://www.w3.org/1999/xlink"
+          aria-labelledby="indicatorTitle indicatorDescription"
+        >
+          <title id="indicatorTitle">Activity Indicator</title>
+          <desc id="indicatorDescription">
+            A rotating activity indicator with three dots in the middle.
+          </desc>
+          <g
+            id="icons/check-ring---squared"
+            stroke="none"
+            stroke-width="1"
+            fill="none"
+            fill-rule="evenodd"
+          >
+            <path
+              id="completed-ring"
+              class="loaded-indicator"
+              d="M60,10 C70.5816709,10 80.3955961,13.2871104 88.4763646,18.8959201 L78.3502633,29.0214223 C72.9767592,25.8315427 66.7022695,24 60,24 C40.117749,24 24,40.117749 24,60 C24,79.882251 40.117749,96 60,96 C79.882251,96 96,79.882251 96,60 L95.995,59.46 L108.327675,47.128668 C109.350926,50.9806166 109.925886,55.015198 109.993301,59.1731586 L110,60 C110,87.6142375 87.6142375,110 60,110 C32.3857625,110 10,87.6142375 10,60 C10,32.3857625 32.3857625,10 60,10 Z"
+            ></path>
+            <polygon
+              id="check"
+              class="loaded-indicator"
+              transform="translate(75.000000, 41.500000) rotate(44.000000) translate(-75.000000, -41.500000) "
+              points="96 85 54 85 54 65 76 64.999 76 -2 96 -2"
+            ></polygon>
+            <path
+              id="activity-ring"
+              class="activity-indicator"
+              d="M60,10 C69.8019971,10 78.9452178,12.8205573 86.6623125,17.6943223 L76.4086287,27.9484118 C71.4880919,25.4243078 65.9103784,24 60,24 C40.117749,24 24,40.117749 24,60 C24,79.882251 40.117749,96 60,96 C79.882251,96 96,79.882251 96,60 C96,53.3014663 94.1704984,47.0302355 90.9839104,41.6587228 L101.110332,31.5326452 C106.715332,39.6116982 110,49.4222615 110,60 C110,87.6142375 87.6142375,110 60,110 C32.3857625,110 10,87.6142375 10,60 C10,32.3857625 32.3857625,10 60,10 Z"
+            ></path>
+            <g
+              id="activity-dots"
+              class="activity-indicator"
+              transform="translate(40.000000, 55.000000)"
+            >
+              <circle id="left-dot" cx="5" cy="5" r="5"></circle>
+              <circle id="middle-dot" cx="20" cy="5" r="5"></circle>
+              <circle id="right-dot" cx="35" cy="5" r="5"></circle>
+            </g>
+          </g>
+        </svg>
+      </div>
+    `;
+  }
+
+  static get styles() {
+    const checkmarkColorCss = css`var(--activityIndicatorCheckmarkColor, #31A481)`;
+    const completedRingColorCss = css`var(--activityIndicatorCompletedRingColor, #31A481)`;
+    const loadingRingColorCss = css`var(--activityIndicatorLoadingRingColor, #333333)`;
+    const loadingDotColorCss = css`var(--activityIndicatorLoadingDotColor, #333333)`;
+
+    return css`
+      #completed-ring {
+        fill: ${completedRingColorCss};
+      }
+
+      #check {
+        fill: ${checkmarkColorCss};
+      }
+
+      #activity-ring {
+        fill: ${loadingRingColorCss};
+      }
+
+      #activity-dots {
+        fill: ${loadingDotColorCss};
+      }
+
+      .activity-indicator {
+        opacity: 0;
+        transition: opacity 0.25s ease-out;
+      }
+
+      .processing .activity-indicator {
+        opacity: 1;
+      }
+
+      .loaded-indicator {
+        opacity: 1;
+        transition: opacity 0.25s ease-out;
+      }
+
+      .processing .loaded-indicator {
+        opacity: 0;
+      }
+
+      .image {
+        border: 1px solid red;
+        display: inline-block;
+      }
+
+      .processing #activity-ring {
+        animation: rotate 1.3s infinite linear;
+        transform-origin: 50px 50px;
+        transform-box: fill-box;
+      }
+
+      .processing #left-dot {
+        opacity: 0;
+        animation: dot 1.3s infinite;
+        animation-delay: 0.2s;
+      }
+
+      .processing #middle-dot {
+        opacity: 0;
+        animation: dot 1.3s infinite;
+        animation-delay: 0.4s;
+      }
+
+      .processing #right-dot {
+        opacity: 0;
+        animation: dot 1.3s infinite;
+        animation-delay: 0.6s;
+      }
+
+      @keyframes rotate {
+        0% {
+          transform: rotate(-360deg);
+        }
+      }
+
+      @keyframes dot {
+        0% {
+          opacity: 0;
+        }
+        25% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+    `;
+  }
+}
+
+window.customElements.define('ia-activity-indicator', IAActivityIndicator);

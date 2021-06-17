@@ -1,5 +1,7 @@
 # \<histogram-date-range>
 
+Check out the [interactive demo](https://internetarchive.github.io/iaux-histogram-date-range/demo/).
+
 This webcomponent follows the [open-wc](https://github.com/open-wc/open-wc) recommendation.
 
 Travis:
@@ -24,10 +26,18 @@ npm i @internetarchive/histogram-date-range
   tooltipWidth="140"
   dateFormat="DD MMM YYYY"
   style="
-    --dateRangePickerTooltipFontSize: 1rem;
-    --dateRangePickerInputWidth: 85px;
+    --histogramDateRangeTooltipFontSize: 1rem;
+    --histogramDateRangeInputWidth: 85px;
   "
-  data='{ "minDate": "May 1, 1972", "maxDate": "12/21/1980","bins": [ 85, 25, 200, 0, 0, 34, 0, 2, 5, 10, 0, 56, 10, 45, 100, 70, 50]}'
+  minDate="1400"
+  maxDate="2021"
+  minSelectedDate="1800"
+  maxSelectedDate="1900"
+  bins="[ 74, 67, 17, 66, 49, 93, 47, 61, 32, 46, 53, 2,
+          13, 45, 28, 1, 8, 70, 37, 74, 67, 17, 66, 49, 93,
+          47, 61, 70, 37, 74, 67, 17, 66, 49, 93, 47, 61, 32,
+          32, 70, 37, 74, 67, 17, 66, 49, 93, 47, 61, 32
+        ]"
 ></histogram-date-range>
 ```
 
