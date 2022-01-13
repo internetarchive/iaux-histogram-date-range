@@ -37,6 +37,14 @@
     </div>
 
     <div class="container">
+      <div class="description">small year range and few bins</div>
+      <histogram-date-range width="175" tooltipwidth="120" 
+        dateformat="YYYY" minselecteddate="2017" maxselecteddate="2019"
+        mindate="2016" maxdate="2022" bins="[76104,866978,1151617,986331,218672,107410,3324]">
+      </histogram-date-range>
+    </div>
+
+    <div class="container">
       <div class="description">
         default range with custom styling and date format
       </div>
@@ -111,5 +119,6 @@
       <div class="description">empty data</div>
       <histogram-date-range missingDataMessage="no data..."></histoghistogram-date-range>
     </div>
+
   </body>
 </html>

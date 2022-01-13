@@ -567,7 +567,7 @@ export class HistogramDateRange extends LitElement {
           @pointerleave="${this.hideTooltip}"
           @click="${this.handleBarClick}"
           fill="${
-            x >= this.minSliderX && x <= this.maxSliderX
+            x + barWidth >= this.minSliderX && x <= this.maxSliderX
               ? barIncludedFill
               : barExcludedFill
           }"
