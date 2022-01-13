@@ -415,6 +415,21 @@ describe('HistogramDateRange', () => {
     expect(el.shadowRoot?.innerHTML).to.contain('no data available');
   });
 
+  it('correctly displays data consisting of a single bin', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range minDate="2020" maxDate="2020" bins="[50]">
+        </histogram-date-range>
+      `
+    );
+    const bars = (el.shadowRoot?.querySelectorAll(
+      '.bar'
+    ) as unknown) as SVGRectElement[];
+    const heights = Array.from(bars).map(b => b.height.baseVal.value);
+    debugger;
+    expect(heights).to.eql([157]);
+  });
+
   it('has a disabled state', async () => {
     const el = await fixture<HistogramDateRange>(
       html`

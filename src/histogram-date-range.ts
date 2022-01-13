@@ -143,11 +143,17 @@ export class HistogramDateRange extends LitElement {
   private calculateHistData(): HistogramItem[] {
     const minValue = Math.min(...this.bins);
     const maxValue = Math.max(...this.bins);
-    const valueScale = this.height / Math.log1p(maxValue - minValue);
+    // if there is no difference between the min and max values, use a range of
+    // 1 because log scaling will fail if the range is 0
+    const valueRange =
+      minValue === maxValue ? 1 : Math.log1p(maxValue - minValue);
+    const valueScale = this.height / valueRange;
     const dateScale = this.dateRangeMS / this._numBins;
     return this.bins.map((v: number, i: number) => {
       return {
         value: v,
+        // use log scaling for the height of the bar to prevent tall bars from
+        // making the smaller ones too small to see
         height: Math.floor(Math.log1p(v) * valueScale),
         binStart: `${this.formatDate(i * dateScale + this._minDateMS)}`,
         binEnd: `${this.formatDate((i + 1) * dateScale + this._minDateMS)}`,
