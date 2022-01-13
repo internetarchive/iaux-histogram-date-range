@@ -269,6 +269,9 @@ describe('HistogramDateRange', () => {
 
   it('shows/hides tooltip when hovering over (or pointing at) a bar', async () => {
     const el = await createCustomElementInHTMLContainer();
+    // include a number which will require commas (1,000,000)
+    el.bins = [1000000, 1, 100];
+    await aTimeout(10);
     const bars = (el.shadowRoot?.querySelectorAll(
       '.bar'
     ) as unknown) as SVGRectElement[];
@@ -278,7 +281,9 @@ describe('HistogramDateRange', () => {
     // hover
     bars[0].dispatchEvent(new PointerEvent('pointerenter'));
     await el.updateComplete;
-    expect(tooltip.innerText).to.match(/^33 items\n1\/1\/1900 - 4\/23\/1940/);
+    expect(tooltip.innerText).to.match(
+      /^1,000,000 items\n1\/1\/1900 - 4\/23\/1940/
+    );
     expect(getComputedStyle(tooltip).display).to.eq('block');
 
     // leave

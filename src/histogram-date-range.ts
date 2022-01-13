@@ -248,12 +248,13 @@ export class HistogramDateRange extends LitElement {
     const x = target.x.baseVal.value + this.sliderWidth / 2;
     const dataset = target.dataset as BarDataset;
     const itemsText = `item${dataset.numItems !== '1' ? 's' : ''}`;
+    const formattedNumItems = Number(dataset.numItems).toLocaleString();
 
     this._tooltipOffset =
       x + (this._binWidth - this.sliderWidth - this.tooltipWidth) / 2;
 
     this._tooltipContent = html`
-      ${dataset.numItems} ${itemsText}<br />
+      ${formattedNumItems} ${itemsText}<br />
       ${dataset.binStart} - ${dataset.binEnd}
     `;
     this._tooltipVisible = true;
