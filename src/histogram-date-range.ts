@@ -11,6 +11,8 @@ import {
 import { property, state, customElement } from 'lit/decorators.js';
 import { live } from 'lit/directives/live.js';
 import dayjs from 'dayjs/esm/index.js';
+import customParseFormat from 'dayjs/esm/plugin/customParseFormat';
+dayjs.extend(customParseFormat);
 import '@internetarchive/ia-activity-indicator/ia-activity-indicator';
 
 // these values can be overridden via the component's HTML (camelCased) attributes
@@ -126,8 +128,8 @@ export class HistogramDateRange extends LitElement {
       return;
     }
     this._histWidth = this.width - this.sliderWidth * 2;
-    this._minDateMS = dayjs(this.minDate).valueOf();
-    this._maxDateMS = dayjs(this.maxDate).valueOf();
+    this._minDateMS = this.getMSFromString(this.minDate);
+    this._maxDateMS = this.getMSFromString(this.maxDate);
     this._binWidth = this._histWidth / this._numBins;
     this._previousDateRange = this.currentDateRangeString;
     this._histData = this.calculateHistData();
@@ -184,56 +186,60 @@ export class HistogramDateRange extends LitElement {
 
   /** formatted minimum date of selected date range */
   @property() get minSelectedDate(): string {
-    return this.formatDate(this._minSelectedDate);
+    return this.formatDate(this.getMSFromString(this._minSelectedDate));
   }
 
+  /** updates minSelectedDate if new date is valid */
   set minSelectedDate(rawDate: string) {
     if (!this._minSelectedDate) {
       // because the values needed to calculate valid max/min values are not
       // available during the lit init when it's populating properties from
       // attributes, fall back to just the raw date if nothing is already set
       this._minSelectedDate = rawDate;
+      return;
     }
-    const x = this.translateDateToPosition(rawDate);
-    if (x) {
-      const validX = this.validMinSliderX(x);
-      this._minSelectedDate = this.translatePositionToDate(validX);
+    let ms = this.getMSFromString(rawDate);
+    if (!Number.isNaN(ms)) {
+      ms = Math.min(ms, this.getMSFromString(this._maxSelectedDate));
+      this._minSelectedDate = this.formatDate(ms);
     }
     this.requestUpdate();
   }
 
   /** formatted maximum date of selected date range */
   @property() get maxSelectedDate(): string {
-    return this.formatDate(this._maxSelectedDate);
+    return this.formatDate(this.getMSFromString(this._maxSelectedDate));
   }
 
+  /** updates maxSelectedDate if new date is valid */
   set maxSelectedDate(rawDate: string) {
     if (!this._maxSelectedDate) {
-      // see comment above in the minSelectedDate setter
+      // because the values needed to calculate valid max/min values are not
+      // available during the lit init when it's populating properties from
+      // attributes, fall back to just the raw date if nothing is already set
       this._maxSelectedDate = rawDate;
+      return;
     }
-    const x = this.translateDateToPosition(rawDate);
-    if (x) {
-      const validX = this.validMaxSliderX(x);
-      this._maxSelectedDate = this.translatePositionToDate(validX);
+    let ms = this.getMSFromString(rawDate);
+    if (!Number.isNaN(ms)) {
+      ms = Math.max(this.getMSFromString(this._minSelectedDate), ms);
+      this._maxSelectedDate = this.formatDate(ms);
     }
     this.requestUpdate();
   }
+
   /** horizontal position of min date slider */
   get minSliderX(): number {
-    return (
-      // default to leftmost position if missing or invalid min position
-      this.translateDateToPosition(this.minSelectedDate) ?? this.sliderWidth
-    );
+    // default to leftmost position if missing or invalid min position
+    const x = this.translateDateToPosition(this.minSelectedDate);
+    return this.validMinSliderX(x);
   }
 
   /** horizontal position of max date slider */
   get maxSliderX(): number {
-    return (
-      // default to rightmost position if missing or invalid max position
-      this.translateDateToPosition(this.maxSelectedDate) ??
-      this.width - this.sliderWidth
-    );
+    // default to rightmost position if missing or invalid max position
+    const x = this.translateDateToPosition(this.maxSelectedDate);
+    return this.validMaxSliderX(x);
   }
 
   private get dateRangeMS(): number {
@@ -297,11 +303,14 @@ export class HistogramDateRange extends LitElement {
   private move = (e: PointerEvent): void => {
     const newX = e.offsetX - this._dragOffset;
     const slider = this._currentSlider as SVGRectElement;
-    const date = this.translatePositionToDate(newX);
     if ((slider.id as SliderId) === 'slider-min') {
-      this.minSelectedDate = date;
+      this.minSelectedDate = this.translatePositionToDate(
+        this.validMinSliderX(newX)
+      );
     } else {
-      this.maxSelectedDate = date;
+      this.maxSelectedDate = this.translatePositionToDate(
+        this.validMaxSliderX(newX)
+      );
     }
   };
 
@@ -314,8 +323,14 @@ export class HistogramDateRange extends LitElement {
    * to the position of the max slider
    */
   private validMinSliderX(newX: number): number {
-    const validX = Math.max(newX, this.sliderWidth);
-    return Math.min(validX, this.maxSliderX);
+    if (Number.isNaN(newX)) {
+      return this.sliderWidth;
+    }
+    return this.clamp(
+      newX,
+      this.sliderWidth,
+      this.translateDateToPosition(this.maxSelectedDate)
+    );
   }
 
   /**
@@ -327,8 +342,14 @@ export class HistogramDateRange extends LitElement {
    * then set it to the position of the min slider
    */
   private validMaxSliderX(newX: number): number {
-    const validX = Math.max(newX, this.minSliderX);
-    return Math.min(validX, this.width - this.sliderWidth);
+    if (Number.isNaN(newX)) {
+      return this.width - this.sliderWidth;
+    }
+    return this.clamp(
+      newX,
+      this.translateDateToPosition(this.minSelectedDate),
+      this.width - this.sliderWidth
+    );
   }
 
   private addListeners(): void {
@@ -416,12 +437,17 @@ export class HistogramDateRange extends LitElement {
    * @param date
    * @returns x-position of slider
    */
-  private translateDateToPosition(date: string): number | null {
-    const milliseconds = dayjs(date).valueOf();
-    const xPosition =
+  private translateDateToPosition(date: string): number {
+    const milliseconds = this.getMSFromString(date);
+    return (
       this.sliderWidth +
-      ((milliseconds - this._minDateMS) * this._histWidth) / this.dateRangeMS;
-    return isNaN(milliseconds) || isNaN(xPosition) ? null : xPosition;
+      ((milliseconds - this._minDateMS) * this._histWidth) / this.dateRangeMS
+    );
+  }
+
+  /** ensure that the returned value is between minValue and maxValue */
+  private clamp(x: number, minValue: number, maxValue: number): number {
+    return Math.min(Math.max(x, minValue), maxValue);
   }
 
   private handleMinDateInput(e: InputEvent): void {
@@ -436,28 +462,40 @@ export class HistogramDateRange extends LitElement {
     this.beginEmitUpdateProcess();
   }
 
+  private handleKeyUp(e: KeyboardEvent): void {
+    if (e.key === 'Enter') {
+      const target = e.currentTarget as HTMLInputElement;
+      target.blur();
+    }
+  }
+
   private get currentDateRangeString(): string {
     return `${this.minSelectedDate}:${this.maxSelectedDate}`;
   }
 
-  /** minimum selected date in milliseconds */
-  private get minSelectedDateMS(): number {
-    return dayjs(this.minSelectedDate).valueOf();
-  }
-
-  /** maximum selected date in milliseconds */
-  private get maxSelectedDateMS(): number {
-    return dayjs(this.maxSelectedDate).valueOf();
+  private getMSFromString(date: string): number {
+    const digitGroupCount = (date.split(/(\d+)/).length - 1) / 2;
+    if (digitGroupCount === 1) {
+      // if there's just a single set of digits, assume it's a year
+      const dateObj = new Date(0, 0); // start at January 1, 1900
+      dateObj.setFullYear(Number(date)); // override year (=> 0099-01-01) = 99 CE
+      return dateObj.getTime(); // get time in milliseconds
+    }
+    return dayjs(date, [this.dateFormat, DATE_FORMAT]).valueOf();
   }
 
   private handleBarClick(e: InputEvent): void {
     const dataset = (e.currentTarget as SVGRectElement).dataset as BarDataset;
-    const binStartDateMS = dayjs(dataset.binStart).valueOf();
-    if (binStartDateMS < this.minSelectedDateMS) {
+    const distanceFromMinSlider =
+      this.getMSFromString(dataset.binStart) -
+      this.getMSFromString(this.minSelectedDate);
+    const distanceFromMaxSlider =
+      this.getMSFromString(this.maxSelectedDate) -
+      this.getMSFromString(dataset.binEnd);
+    // update the selection by moving the nearer slider
+    if (distanceFromMinSlider < distanceFromMaxSlider) {
       this.minSelectedDate = dataset.binStart;
-    }
-    const binEndDateMS = dayjs(dataset.binEnd).valueOf();
-    if (binEndDateMS > this.maxSelectedDateMS) {
+    } else {
       this.maxSelectedDate = dataset.binEnd;
     }
     this.beginEmitUpdateProcess();
@@ -581,9 +619,17 @@ export class HistogramDateRange extends LitElement {
     });
   }
 
-  private formatDate(rawDate: string | number): string {
-    const date = dayjs(rawDate);
-    return date.isValid() ? date.format(this.dateFormat) : '';
+  private formatDate(dateMS: number): string {
+    if (Number.isNaN(dateMS)) {
+      return '';
+    }
+    const date = dayjs(dateMS);
+    if (date.year() < 1000) {
+      // years before 1000 don't play well with dayjs custom formatting, so fall
+      // back to displaying only the year
+      return String(date.year());
+    }
+    return date.format(this.dateFormat);
   }
 
   /**
@@ -600,6 +646,7 @@ export class HistogramDateRange extends LitElement {
         type="text"
         @focus="${this.cancelPendingUpdateEvent}"
         @blur="${this.handleMinDateInput}"
+        @keyup="${this.handleKeyUp}"
         .value="${live(this.minSelectedDate)}"
         ?disabled="${this.disabled}"
       />
@@ -614,6 +661,7 @@ export class HistogramDateRange extends LitElement {
         type="text"
         @focus="${this.cancelPendingUpdateEvent}"
         @blur="${this.handleMaxDateInput}"
+        @keyup="${this.handleKeyUp}"
         .value="${live(this.maxSelectedDate)}"
         ?disabled="${this.disabled}"
       />

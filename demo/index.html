@@ -8,11 +8,11 @@
 
   <script type="module">
     import '../dist/src/histogram-date-range.js';
+    let eventCount = 0;
     // listen to events from the component and display the data received from them
     document.addEventListener('histogramDateRangeUpdated', e => {
-      document.querySelector('.received-events').innerHTML = JSON.stringify(
-        e.detail
-      );
+      document.querySelector('.received-events').innerHTML =
+      ++eventCount + ': ' + JSON.stringify(e.detail);
     });
   </script>
   <body>
@@ -37,10 +37,23 @@
     </div>
 
     <div class="container">
+      <div class="description">range spanning negative to positive years</div>
+      <histogram-date-range
+        mindate="-1050" maxdate="2200"
+        bins="[ 74, 67, 17, 66, 49, 93, 47, 61, 32, 46, 53, 2,
+                13, 45, 28, 1, 8, 70, 37, 74, 67, 17, 66, 49, 93,
+                47, 61, 70, 37, 74, 67, 17, 66, 49, 93, 47, 61, 32,
+                32, 70, 37, 74, 67, 17, 66, 49, 93, 47, 61, 32
+              ]"
+      ></histogram-date-range>
+    </div>
+
+
+
+    <div class="container">
       <div class="description">small year range and few bins</div>
       <histogram-date-range width="175" tooltipwidth="120" 
-        dateformat="YYYY" minselecteddate="2017" maxselecteddate="2019"
-        mindate="2016" maxdate="2022" bins="[76104,866978,1151617,986331,218672,107410,3324]">
+        mindate="2008" maxdate="2016" bins="[76104,866978,1151617,986331,218672,107410,3324]">
       </histogram-date-range>
     </div>
 
@@ -61,8 +74,8 @@
           --histogramDateRangeTooltipFontSize: 1rem;
           --histogramDateRangeInputWidth: 85px;
         "
-        minDate="May 1, 1972"
-        maxDate="12/21/1980"
+        minDate="05 May 1972"
+        maxDate="21 Dec 1980"
         bins="[ 85, 25, 200, 0, 0, 34, 0, 2, 5, 10, 0, 56, 10, 45, 100, 70, 50 ]"
       ></histogram-date-range>
     </div>
@@ -107,7 +120,7 @@
       });
     </script>
 
-    <div class="container">
+    <!-- <div class="container">
       <div class="description">
         single bin
       </div>
@@ -118,7 +131,7 @@
     <div class="container">
       <div class="description">empty data</div>
       <histogram-date-range missingDataMessage="no data..."></histoghistogram-date-range>
-    </div>
+    </div> -->
 
   </body>
 </html>

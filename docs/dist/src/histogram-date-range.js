@@ -19,6 +19,8 @@ import {
 import {property, state, customElement} from "../../_snowpack/pkg/lit/decorators.js";
 import {live} from "../../_snowpack/pkg/lit/directives/live.js";
 import dayjs from "../../_snowpack/pkg/dayjs/esm/index.js";
+import customParseFormat from "../../_snowpack/pkg/dayjs/esm/plugin/customParseFormat.js";
+dayjs.extend(customParseFormat);
 import "../../_snowpack/pkg/@internetarchive/ia-activity-indicator/ia-activity-indicator.js";
 const WIDTH = 180;
 const HEIGHT = 40;
@@ -90,11 +92,10 @@ export let HistogramDateRange = class extends LitElement {
     this.move = (e) => {
       const newX = e.offsetX - this._dragOffset;
       const slider = this._currentSlider;
-      const date = this.translatePositionToDate(newX);
       if (slider.id === "slider-min") {
-        this.minSelectedDate = date;
+        this.minSelectedDate = this.translatePositionToDate(this.validMinSliderX(newX));
       } else {
-        this.maxSelectedDate = date;
+        this.maxSelectedDate = this.translatePositionToDate(this.validMaxSliderX(newX));
       }
     };
   }
@@ -112,8 +113,8 @@ export let HistogramDateRange = class extends LitElement {
       return;
     }
     this._histWidth = this.width - this.sliderWidth * 2;
-    this._minDateMS = dayjs(this.minDate).valueOf();
-    this._maxDateMS = dayjs(this.maxDate).valueOf();
+    this._minDateMS = this.getMSFromString(this.minDate);
+    this._maxDateMS = this.getMSFromString(this.maxDate);
     this._binWidth = this._histWidth / this._numBins;
     this._previousDateRange = this.currentDateRangeString;
     this._histData = this.calculateHistData();
@@ -124,7 +125,8 @@ export let HistogramDateRange = class extends LitElement {
   calculateHistData() {
     const minValue = Math.min(...this.bins);
     const maxValue = Math.max(...this.bins);
-    const valueScale = this.height / Math.log1p(maxValue - minValue);
+    const valueRange = minValue === maxValue ? 1 : Math.log1p(maxValue - minValue);
+    const valueScale = this.height / valueRange;
     const dateScale = this.dateRangeMS / this._numBins;
     return this.bins.map((v, i) => {
       return {
@@ -152,38 +154,42 @@ export let HistogramDateRange = class extends LitElement {
     this._isLoading = value;
   }
   get minSelectedDate() {
-    return this.formatDate(this._minSelectedDate);
+    return this.formatDate(this.getMSFromString(this._minSelectedDate));
   }
   set minSelectedDate(rawDate) {
     if (!this._minSelectedDate) {
       this._minSelectedDate = rawDate;
+      return;
     }
-    const x = this.translateDateToPosition(rawDate);
-    if (x) {
-      const validX = this.validMinSliderX(x);
-      this._minSelectedDate = this.translatePositionToDate(validX);
+    let ms = this.getMSFromString(rawDate);
+    if (!Number.isNaN(ms)) {
+      ms = Math.min(ms, this.getMSFromString(this._maxSelectedDate));
+      this._minSelectedDate = this.formatDate(ms);
     }
     this.requestUpdate();
   }
   get maxSelectedDate() {
-    return this.formatDate(this._maxSelectedDate);
+    return this.formatDate(this.getMSFromString(this._maxSelectedDate));
   }
   set maxSelectedDate(rawDate) {
     if (!this._maxSelectedDate) {
       this._maxSelectedDate = rawDate;
+      return;
     }
-    const x = this.translateDateToPosition(rawDate);
-    if (x) {
-      const validX = this.validMaxSliderX(x);
-      this._maxSelectedDate = this.translatePositionToDate(validX);
+    let ms = this.getMSFromString(rawDate);
+    if (!Number.isNaN(ms)) {
+      ms = Math.max(this.getMSFromString(this._minSelectedDate), ms);
+      this._maxSelectedDate = this.formatDate(ms);
     }
     this.requestUpdate();
   }
   get minSliderX() {
-    return this.translateDateToPosition(this.minSelectedDate) ?? this.sliderWidth;
+    const x = this.translateDateToPosition(this.minSelectedDate);
+    return this.validMinSliderX(x);
   }
   get maxSliderX() {
-    return this.translateDateToPosition(this.maxSelectedDate) ?? this.width - this.sliderWidth;
+    const x = this.translateDateToPosition(this.maxSelectedDate);
+    return this.validMaxSliderX(x);
   }
   get dateRangeMS() {
     return this._maxDateMS - this._minDateMS;
@@ -196,9 +202,10 @@ export let HistogramDateRange = class extends LitElement {
     const x = target.x.baseVal.value + this.sliderWidth / 2;
     const dataset = target.dataset;
     const itemsText = `item${dataset.numItems !== "1" ? "s" : ""}`;
+    const formattedNumItems = Number(dataset.numItems).toLocaleString();
     this._tooltipOffset = x + (this._binWidth - this.sliderWidth - this.tooltipWidth) / 2;
     this._tooltipContent = html`
-      ${dataset.numItems} ${itemsText}<br />
+      ${formattedNumItems} ${itemsText}<br />
       ${dataset.binStart} - ${dataset.binEnd}
     `;
     this._tooltipVisible = true;
@@ -208,12 +215,16 @@ export let HistogramDateRange = class extends LitElement {
     this._tooltipVisible = false;
   }
   validMinSliderX(newX) {
-    const validX = Math.max(newX, this.sliderWidth);
-    return Math.min(validX, this.maxSliderX);
+    if (Number.isNaN(newX)) {
+      return this.sliderWidth;
+    }
+    return this.clamp(newX, this.sliderWidth, this.translateDateToPosition(this.maxSelectedDate));
   }
   validMaxSliderX(newX) {
-    const validX = Math.max(newX, this.minSliderX);
-    return Math.min(validX, this.width - this.sliderWidth);
+    if (Number.isNaN(newX)) {
+      return this.width - this.sliderWidth;
+    }
+    return this.clamp(newX, this.translateDateToPosition(this.minSelectedDate), this.width - this.sliderWidth);
   }
   addListeners() {
     window.addEventListener("pointermove", this.move);
@@ -263,9 +274,11 @@ export let HistogramDateRange = class extends LitElement {
     return this.formatDate(this._minDateMS + milliseconds);
   }
   translateDateToPosition(date) {
-    const milliseconds = dayjs(date).valueOf();
-    const xPosition = this.sliderWidth + (milliseconds - this._minDateMS) * this._histWidth / this.dateRangeMS;
-    return isNaN(milliseconds) || isNaN(xPosition) ? null : xPosition;
+    const milliseconds = this.getMSFromString(date);
+    return this.sliderWidth + (milliseconds - this._minDateMS) * this._histWidth / this.dateRangeMS;
+  }
+  clamp(x, minValue, maxValue) {
+    return Math.min(Math.max(x, minValue), maxValue);
   }
   handleMinDateInput(e) {
     const target = e.currentTarget;
@@ -277,23 +290,31 @@ export let HistogramDateRange = class extends LitElement {
     this.maxSelectedDate = target.value;
     this.beginEmitUpdateProcess();
   }
+  handleKeyUp(e) {
+    if (e.key === "Enter") {
+      const target = e.currentTarget;
+      target.blur();
+    }
+  }
   get currentDateRangeString() {
     return `${this.minSelectedDate}:${this.maxSelectedDate}`;
   }
-  get minSelectedDateMS() {
-    return dayjs(this.minSelectedDate).valueOf();
-  }
-  get maxSelectedDateMS() {
-    return dayjs(this.maxSelectedDate).valueOf();
+  getMSFromString(date) {
+    const digitGroupCount = (date.split(/(\d+)/).length - 1) / 2;
+    if (digitGroupCount === 1) {
+      const dateObj = new Date(0, 0);
+      dateObj.setFullYear(Number(date));
+      return dateObj.getTime();
+    }
+    return dayjs(date, [this.dateFormat, DATE_FORMAT]).valueOf();
   }
   handleBarClick(e) {
     const dataset = e.currentTarget.dataset;
-    const binStartDateMS = dayjs(dataset.binStart).valueOf();
-    if (binStartDateMS < this.minSelectedDateMS) {
+    const distanceFromMinSlider = this.getMSFromString(dataset.binStart) - this.getMSFromString(this.minSelectedDate);
+    const distanceFromMaxSlider = this.getMSFromString(this.maxSelectedDate) - this.getMSFromString(dataset.binEnd);
+    if (distanceFromMinSlider < distanceFromMaxSlider) {
       this.minSelectedDate = dataset.binStart;
-    }
-    const binEndDateMS = dayjs(dataset.binEnd).valueOf();
-    if (binEndDateMS > this.maxSelectedDateMS) {
+    } else {
       this.maxSelectedDate = dataset.binEnd;
     }
     this.beginEmitUpdateProcess();
@@ -376,7 +397,7 @@ export let HistogramDateRange = class extends LitElement {
           @pointerenter="${this.showTooltip}"
           @pointerleave="${this.hideTooltip}"
           @click="${this.handleBarClick}"
-          fill="${x >= this.minSliderX && x <= this.maxSliderX ? barIncludedFill : barExcludedFill}"
+          fill="${x + barWidth >= this.minSliderX && x <= this.maxSliderX ? barIncludedFill : barExcludedFill}"
           data-num-items="${data.value}"
           data-bin-start="${data.binStart}"
           data-bin-end="${data.binEnd}"
@@ -385,9 +406,15 @@ export let HistogramDateRange = class extends LitElement {
       return bar;
     });
   }
-  formatDate(rawDate) {
-    const date = dayjs(rawDate);
-    return date.isValid() ? date.format(this.dateFormat) : "";
+  formatDate(dateMS) {
+    if (Number.isNaN(dateMS)) {
+      return "";
+    }
+    const date = dayjs(dateMS);
+    if (date.year() < 1e3) {
+      return String(date.year());
+    }
+    return date.format(this.dateFormat);
   }
   get minInputTemplate() {
     return html`
@@ -397,6 +424,7 @@ export let HistogramDateRange = class extends LitElement {
         type="text"
         @focus="${this.cancelPendingUpdateEvent}"
         @blur="${this.handleMinDateInput}"
+        @keyup="${this.handleKeyUp}"
         .value="${live(this.minSelectedDate)}"
         ?disabled="${this.disabled}"
       />
@@ -410,6 +438,7 @@ export let HistogramDateRange = class extends LitElement {
         type="text"
         @focus="${this.cancelPendingUpdateEvent}"
         @blur="${this.handleMaxDateInput}"
+        @keyup="${this.handleKeyUp}"
         .value="${live(this.maxSelectedDate)}"
         ?disabled="${this.disabled}"
       />

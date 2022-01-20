@@ -14,7 +14,7 @@ const subject = html`
     height="50"
     dateFormat="M/D/YYYY"
     minDate="1900"
-    maxDate="Dec 4, 2020"
+    maxDate="12/4/2020"
     bins="[33, 1, 100]"
   >
   </histogram-date-range>
@@ -71,11 +71,12 @@ describe('HistogramDateRange', () => {
     expect(el.minSelectedDate).to.eq('1/1/1950'); // set to correct format
 
     // attempt to set date earlier than first item
-    minDateInput.value = 'October 1, 1850';
+    minDateInput.value = '10/1/1850';
     minDateInput.dispatchEvent(new Event('blur'));
 
     expect(Math.floor(el.minSliderX)).to.eq(SLIDER_WIDTH); // leftmost valid position
-    expect(el.minSelectedDate).to.eq('1/1/1900'); // leftmost valid date
+    // allow date value less than slider range
+    expect(el.minSelectedDate).to.eq('10/1/1850');
 
     /* -------------------------- maximum (right) slider ------------------------- */
     expect(el.maxSliderX).to.eq(WIDTH - SLIDER_WIDTH);
@@ -84,7 +85,7 @@ describe('HistogramDateRange', () => {
     ) as HTMLInputElement;
 
     // set valid max date
-    maxDateInput.value = 'March 12 1975';
+    maxDateInput.value = '3/12/1975';
     maxDateInput.dispatchEvent(new Event('blur'));
     await el.updateComplete;
 
@@ -92,12 +93,13 @@ describe('HistogramDateRange', () => {
     expect(maxDateInput.value).to.eq('3/12/1975');
 
     // attempt to set date later than last item
-    maxDateInput.value = 'Dec 31 2199';
+    maxDateInput.value = '12/31/2199';
     maxDateInput.dispatchEvent(new Event('blur'));
     await el.updateComplete;
 
     expect(el.maxSliderX).to.eq(WIDTH - SLIDER_WIDTH); // rightmost valid position
-    expect(maxDateInput.value).to.eq('12/4/2020'); // rightmost valid date
+    // allow date value greater than slider range
+    expect(maxDateInput.value).to.eq('12/31/2199');
   });
 
   it('handles invalid date inputs', async () => {
@@ -108,7 +110,7 @@ describe('HistogramDateRange', () => {
       '#date-min'
     ) as HTMLInputElement;
 
-    minDateInput.value = 'May 17, 1961';
+    minDateInput.value = '5/17/1961';
     minDateInput.dispatchEvent(new Event('blur'));
     await el.updateComplete;
 
@@ -394,12 +396,14 @@ describe('HistogramDateRange', () => {
     const minDateInput = el.shadowRoot?.querySelector(
       '#date-min'
     ) as HTMLInputElement;
+    // malformed min date defaults to overall min
     expect(minDateInput.value).to.eq('1900');
 
     const maxDateInput = el.shadowRoot?.querySelector(
       '#date-max'
     ) as HTMLInputElement;
-    expect(maxDateInput.value).to.eq('2020');
+    // well-formed max date is allowed
+    expect(maxDateInput.value).to.eq('5000');
   });
 
   it('handles missing data', async () => {
