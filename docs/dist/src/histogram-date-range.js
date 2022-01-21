@@ -215,16 +215,12 @@ export let HistogramDateRange = class extends LitElement {
     this._tooltipVisible = false;
   }
   validMinSliderX(newX) {
-    if (Number.isNaN(newX)) {
-      return this.sliderWidth;
-    }
-    return this.clamp(newX, this.sliderWidth, this.translateDateToPosition(this.maxSelectedDate));
+    const ret = this.clamp(newX, this.sliderWidth, this.translateDateToPosition(this.maxSelectedDate));
+    return Number.isNaN(ret) ? this.sliderWidth : ret;
   }
   validMaxSliderX(newX) {
-    if (Number.isNaN(newX)) {
-      return this.width - this.sliderWidth;
-    }
-    return this.clamp(newX, this.translateDateToPosition(this.minSelectedDate), this.width - this.sliderWidth);
+    const ret = this.clamp(newX, this.translateDateToPosition(this.minSelectedDate), this.width - this.sliderWidth);
+    return Number.isNaN(ret) ? this.width - this.sliderWidth : ret;
   }
   addListeners() {
     window.addEventListener("pointermove", this.move);

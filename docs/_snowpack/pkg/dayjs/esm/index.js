@@ -21,7 +21,7 @@ var DATE = 'date';
 var FORMAT_DEFAULT = 'YYYY-MM-DDTHH:mm:ssZ';
 var INVALID_DATE_STRING = 'Invalid Date'; // regex
 
-var REGEX_PARSE = /^(\d{4})[-/]?(\d{1,2})?[-/]?(\d{0,2})[^0-9]*(\d{1,2})?:?(\d{1,2})?:?(\d{1,2})?.?(\d+)?$/;
+var REGEX_PARSE = /^(\d{4})[-/]?(\d{1,2})?[-/]?(\d{0,2})[Tt\s]*(\d{1,2})?:?(\d{1,2})?:?(\d{1,2})?[.:]?(\d+)?$/;
 var REGEX_FORMAT = /\[([^\]]+)]|Y{1,4}|M{1,4}|D{1,2}|d{1,4}|H{1,2}|h{1,2}|a|A|m{1,2}|s{1,2}|Z{1,2}|SSS/g;
 
 // English [en]
@@ -372,10 +372,10 @@ var Dayjs = /*#__PURE__*/function () {
   _proto.format = function format(formatStr) {
     var _this3 = this;
 
-    if (!this.isValid()) return INVALID_DATE_STRING;
+    var locale = this.$locale();
+    if (!this.isValid()) return locale.invalidDate || INVALID_DATE_STRING;
     var str = formatStr || FORMAT_DEFAULT;
     var zoneStr = Utils.z(this);
-    var locale = this.$locale();
     var $H = this.$H,
         $m = this.$m,
         $M = this.$M;
