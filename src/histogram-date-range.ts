@@ -323,14 +323,12 @@ export class HistogramDateRange extends LitElement {
    * to the position of the max slider
    */
   private validMinSliderX(newX: number): number {
-    if (Number.isNaN(newX)) {
-      return this.sliderWidth;
-    }
-    return this.clamp(
+    const ret = this.clamp(
       newX,
       this.sliderWidth,
       this.translateDateToPosition(this.maxSelectedDate)
     );
+    return Number.isNaN(ret) ? this.sliderWidth : ret;
   }
 
   /**
@@ -342,14 +340,12 @@ export class HistogramDateRange extends LitElement {
    * then set it to the position of the min slider
    */
   private validMaxSliderX(newX: number): number {
-    if (Number.isNaN(newX)) {
-      return this.width - this.sliderWidth;
-    }
-    return this.clamp(
+    const ret = this.clamp(
       newX,
       this.translateDateToPosition(this.minSelectedDate),
       this.width - this.sliderWidth
     );
+    return Number.isNaN(ret) ? this.width - this.sliderWidth : ret;
   }
 
   private addListeners(): void {
@@ -431,8 +427,7 @@ export class HistogramDateRange extends LitElement {
   }
 
   /**
-   * Returns slider x-position corresponding to given date (or null if invalid
-   * date)
+   * Returns slider x-position corresponding to given date
    *
    * @param date
    * @returns x-position of slider
