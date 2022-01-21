@@ -380,6 +380,39 @@ describe('HistogramDateRange', () => {
     expect(el.maxSelectedDate).to.eq('1998'); // range was extended to right
   });
 
+  it('narrows the selected range when the histogram is clicked inside of the current range', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range
+          minDate="1900"
+          maxDate="2020"
+          minSelectedDate="1900"
+          maxSelectedDate="2020"
+          bins="[33, 1, 1, 1, 10, 10, 1, 1, 1, 50, 100]"
+        >
+        </histogram-date-range>
+      `
+    );
+
+    ///////////////////////////////////////////////
+    // NB: the slider nearest the clicked bar moves
+    ///////////////////////////////////////////////
+
+    const leftBarToClick = Array.from(
+      el.shadowRoot?.querySelectorAll('.bar') as NodeList
+    )[3]; // click on fourth bar to the left
+
+    leftBarToClick.dispatchEvent(new Event('click'));
+    expect(el.minSelectedDate).to.eq('1932'); // range was extended to the right
+
+    const rightBarToClick = Array.from(
+      el.shadowRoot?.querySelectorAll('.bar') as NodeList
+    )[8]; // click on second bar from the right
+
+    rightBarToClick.dispatchEvent(new Event('click'));
+    expect(el.maxSelectedDate).to.eq('1998'); // range was extended to the left
+  });
+
   it('handles invalid pre-selected range by defaulting to overall max and min', async () => {
     const el = await fixture<HistogramDateRange>(
       html`
@@ -435,7 +468,6 @@ describe('HistogramDateRange', () => {
       '.bar'
     ) as unknown) as SVGRectElement[];
     const heights = Array.from(bars).map(b => b.height.baseVal.value);
-    debugger;
     expect(heights).to.eql([157]);
   });
 
