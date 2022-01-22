@@ -146,6 +146,12 @@ export let HistogramDateRange = class extends LitElement {
     }
     return this.bins.length;
   }
+  get histogramLeftEdgeX() {
+    return this.sliderWidth;
+  }
+  get histogramRightEdgeX() {
+    return this.width - this.sliderWidth;
+  }
   get loading() {
     return this._isLoading;
   }
@@ -161,10 +167,11 @@ export let HistogramDateRange = class extends LitElement {
       this._minSelectedDate = rawDate;
       return;
     }
-    let ms = this.getMSFromString(rawDate);
-    if (!Number.isNaN(ms)) {
-      ms = Math.min(ms, this.getMSFromString(this._maxSelectedDate));
-      this._minSelectedDate = this.formatDate(ms);
+    const proposedDateMS = this.getMSFromString(rawDate);
+    const isValidDate = !Number.isNaN(proposedDateMS);
+    const isNotTooRecent = proposedDateMS <= this.getMSFromString(this.maxSelectedDate);
+    if (isValidDate && isNotTooRecent) {
+      this._minSelectedDate = this.formatDate(proposedDateMS);
     }
     this.requestUpdate();
   }
@@ -176,10 +183,11 @@ export let HistogramDateRange = class extends LitElement {
       this._maxSelectedDate = rawDate;
       return;
     }
-    let ms = this.getMSFromString(rawDate);
-    if (!Number.isNaN(ms)) {
-      ms = Math.max(this.getMSFromString(this._minSelectedDate), ms);
-      this._maxSelectedDate = this.formatDate(ms);
+    const proposedDateMS = this.getMSFromString(rawDate);
+    const isValidDate = !Number.isNaN(proposedDateMS);
+    const isNotTooOld = proposedDateMS >= this.getMSFromString(this.minSelectedDate);
+    if (isValidDate && isNotTooOld) {
+      this._maxSelectedDate = this.formatDate(proposedDateMS);
     }
     this.requestUpdate();
   }
@@ -215,12 +223,16 @@ export let HistogramDateRange = class extends LitElement {
     this._tooltipVisible = false;
   }
   validMinSliderX(newX) {
-    const ret = this.clamp(newX, this.sliderWidth, this.translateDateToPosition(this.maxSelectedDate));
-    return Number.isNaN(ret) ? this.sliderWidth : ret;
+    const rightLimit = Math.min(this.translateDateToPosition(this.maxSelectedDate), this.histogramRightEdgeX);
+    newX = this.clamp(newX, this.histogramLeftEdgeX, rightLimit);
+    const isInvalid = Number.isNaN(newX) || rightLimit < this.histogramLeftEdgeX;
+    return isInvalid ? this.histogramLeftEdgeX : newX;
   }
   validMaxSliderX(newX) {
-    const ret = this.clamp(newX, this.translateDateToPosition(this.minSelectedDate), this.width - this.sliderWidth);
-    return Number.isNaN(ret) ? this.width - this.sliderWidth : ret;
+    const leftLimit = Math.max(this.histogramLeftEdgeX, this.translateDateToPosition(this.minSelectedDate));
+    newX = this.clamp(newX, leftLimit, this.histogramRightEdgeX);
+    const isInvalid = Number.isNaN(newX) || leftLimit > this.histogramRightEdgeX;
+    return isInvalid ? this.histogramRightEdgeX : newX;
   }
   addListeners() {
     window.addEventListener("pointermove", this.move);
@@ -306,8 +318,9 @@ export let HistogramDateRange = class extends LitElement {
   }
   handleBarClick(e) {
     const dataset = e.currentTarget.dataset;
-    const distanceFromMinSlider = this.getMSFromString(dataset.binStart) - this.getMSFromString(this.minSelectedDate);
-    const distanceFromMaxSlider = this.getMSFromString(this.maxSelectedDate) - this.getMSFromString(dataset.binEnd);
+    const clickPosition = (this.getMSFromString(dataset.binStart) + this.getMSFromString(dataset.binEnd)) / 2;
+    const distanceFromMinSlider = Math.abs(clickPosition - this.getMSFromString(this.minSelectedDate));
+    const distanceFromMaxSlider = Math.abs(clickPosition - this.getMSFromString(this.maxSelectedDate));
     if (distanceFromMinSlider < distanceFromMaxSlider) {
       this.minSelectedDate = dataset.binStart;
     } else {

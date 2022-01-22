@@ -174,6 +174,14 @@ export class HistogramDateRange extends LitElement {
     return this.bins.length;
   }
 
+  private get histogramLeftEdgeX(): number {
+    return this.sliderWidth;
+  }
+
+  private get histogramRightEdgeX(): number {
+    return this.width - this.sliderWidth;
+  }
+
   /** component's loading (and disabled) state */
   @property({ type: Boolean }) get loading(): boolean {
     return this._isLoading;
@@ -198,10 +206,12 @@ export class HistogramDateRange extends LitElement {
       this._minSelectedDate = rawDate;
       return;
     }
-    let ms = this.getMSFromString(rawDate);
-    if (!Number.isNaN(ms)) {
-      ms = Math.min(ms, this.getMSFromString(this._maxSelectedDate));
-      this._minSelectedDate = this.formatDate(ms);
+    const proposedDateMS = this.getMSFromString(rawDate);
+    const isValidDate = !Number.isNaN(proposedDateMS);
+    const isNotTooRecent =
+      proposedDateMS <= this.getMSFromString(this.maxSelectedDate);
+    if (isValidDate && isNotTooRecent) {
+      this._minSelectedDate = this.formatDate(proposedDateMS);
     }
     this.requestUpdate();
   }
@@ -220,24 +230,24 @@ export class HistogramDateRange extends LitElement {
       this._maxSelectedDate = rawDate;
       return;
     }
-    let ms = this.getMSFromString(rawDate);
-    if (!Number.isNaN(ms)) {
-      ms = Math.max(this.getMSFromString(this._minSelectedDate), ms);
-      this._maxSelectedDate = this.formatDate(ms);
+    const proposedDateMS = this.getMSFromString(rawDate);
+    const isValidDate = !Number.isNaN(proposedDateMS);
+    const isNotTooOld =
+      proposedDateMS >= this.getMSFromString(this.minSelectedDate);
+    if (isValidDate && isNotTooOld) {
+      this._maxSelectedDate = this.formatDate(proposedDateMS);
     }
     this.requestUpdate();
   }
 
   /** horizontal position of min date slider */
   get minSliderX(): number {
-    // default to leftmost position if missing or invalid min position
     const x = this.translateDateToPosition(this.minSelectedDate);
     return this.validMinSliderX(x);
   }
 
   /** horizontal position of max date slider */
   get maxSliderX(): number {
-    // default to rightmost position if missing or invalid max position
     const x = this.translateDateToPosition(this.maxSelectedDate);
     return this.validMaxSliderX(x);
   }
@@ -318,34 +328,42 @@ export class HistogramDateRange extends LitElement {
    * Constrain a proposed value for the minimum (left) slider
    *
    * If the value is less than the leftmost valid position, then set it to the
-   * left edge of the widget (ie the slider width). If the value is greater than
-   * the rightmost valid position (the position of the max slider), then set it
-   * to the position of the max slider
+   * left edge of the histogram (ie the slider width). If the value is greater
+   * than the rightmost valid position (the position of the max slider), then
+   * set it to the position of the max slider
    */
   private validMinSliderX(newX: number): number {
-    const ret = this.clamp(
-      newX,
-      this.sliderWidth,
-      this.translateDateToPosition(this.maxSelectedDate)
+    // allow the left slider to go right only to the right slider, even if the
+    // max selected date is out of range
+    const rightLimit = Math.min(
+      this.translateDateToPosition(this.maxSelectedDate),
+      this.histogramRightEdgeX
     );
-    return Number.isNaN(ret) ? this.sliderWidth : ret;
+    newX = this.clamp(newX, this.histogramLeftEdgeX, rightLimit);
+    const isInvalid =
+      Number.isNaN(newX) || rightLimit < this.histogramLeftEdgeX;
+    return isInvalid ? this.histogramLeftEdgeX : newX;
   }
 
   /**
    * Constrain a proposed value for the maximum (right) slider
    *
    * If the value is greater than the rightmost valid position, then set it to
-   * the right edge of the widget (ie widget width - slider width). If the value
-   * is less than the leftmost valid position (the position of the min slider),
-   * then set it to the position of the min slider
+   * the right edge of the histogram (ie histogram width - slider width). If the
+   * value is less than the leftmost valid position (the position of the min
+   * slider), then set it to the position of the min slider
    */
   private validMaxSliderX(newX: number): number {
-    const ret = this.clamp(
-      newX,
-      this.translateDateToPosition(this.minSelectedDate),
-      this.width - this.sliderWidth
+    // allow the right slider to go left only to the left slider, even if the
+    // min selected date is out of range
+    const leftLimit = Math.max(
+      this.histogramLeftEdgeX,
+      this.translateDateToPosition(this.minSelectedDate)
     );
-    return Number.isNaN(ret) ? this.width - this.sliderWidth : ret;
+    newX = this.clamp(newX, leftLimit, this.histogramRightEdgeX);
+    const isInvalid =
+      Number.isNaN(newX) || leftLimit > this.histogramRightEdgeX;
+    return isInvalid ? this.histogramRightEdgeX : newX;
   }
 
   private addListeners(): void {
@@ -479,15 +497,25 @@ export class HistogramDateRange extends LitElement {
     return dayjs(date, [this.dateFormat, DATE_FORMAT]).valueOf();
   }
 
-  private handleBarClick(e: InputEvent): void {
+  /**
+   * expand or narrow the selected range by moving the slider nearest the
+   * clicked bar to the outer edge of the clicked bar
+   *
+   * @param e Event click event from a histogram bar
+   */
+  private handleBarClick(e: Event): void {
     const dataset = (e.currentTarget as SVGRectElement).dataset as BarDataset;
-    const distanceFromMinSlider =
-      this.getMSFromString(dataset.binStart) -
-      this.getMSFromString(this.minSelectedDate);
-    const distanceFromMaxSlider =
-      this.getMSFromString(this.maxSelectedDate) -
-      this.getMSFromString(dataset.binEnd);
-    // update the selection by moving the nearer slider
+    const clickPosition =
+      (this.getMSFromString(dataset.binStart) +
+        this.getMSFromString(dataset.binEnd)) /
+      2;
+    const distanceFromMinSlider = Math.abs(
+      clickPosition - this.getMSFromString(this.minSelectedDate)
+    );
+    const distanceFromMaxSlider = Math.abs(
+      clickPosition - this.getMSFromString(this.maxSelectedDate)
+    );
+    // update the selected range by moving the nearer slider
     if (distanceFromMinSlider < distanceFromMaxSlider) {
       this.minSelectedDate = dataset.binStart;
     } else {

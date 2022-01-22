@@ -370,6 +370,8 @@ describe('HistogramDateRange', () => {
     )[1]; // click on second bar to the left
 
     leftBarToClick.dispatchEvent(new Event('click'));
+    await el.updateComplete;
+    debugger;
     expect(el.minSelectedDate).to.eq('1910'); // range was extended to left
 
     const rightBarToClick = Array.from(
