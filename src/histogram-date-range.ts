@@ -491,7 +491,7 @@ export class HistogramDateRange extends LitElement {
     if (digitGroupCount === 1) {
       // if there's just a single set of digits, assume it's a year
       const dateObj = new Date(0, 0); // start at January 1, 1900
-      dateObj.setFullYear(Number(date)); // override year (=> 0099-01-01) = 99 CE
+      dateObj.setFullYear(Number(date)); // override year
       return dateObj.getTime(); // get time in milliseconds
     }
     return dayjs(date, [this.dateFormat, DATE_FORMAT]).valueOf();
@@ -505,6 +505,8 @@ export class HistogramDateRange extends LitElement {
    */
   private handleBarClick(e: Event): void {
     const dataset = (e.currentTarget as SVGRectElement).dataset as BarDataset;
+    // use the midpoint of the width of the clicked bar to determine which is
+    // the nearest slider
     const clickPosition =
       (this.getMSFromString(dataset.binStart) +
         this.getMSFromString(dataset.binEnd)) /
