@@ -463,13 +463,13 @@ export class HistogramDateRange extends LitElement {
     return Math.min(Math.max(x, minValue), maxValue);
   }
 
-  private handleMinDateInput(e: InputEvent): void {
+  private handleMinDateInput(e: Event): void {
     const target = e.currentTarget as HTMLInputElement;
     this.minSelectedDate = target.value;
     this.beginEmitUpdateProcess();
   }
 
-  private handleMaxDateInput(e: InputEvent): void {
+  private handleMaxDateInput(e: Event): void {
     const target = e.currentTarget as HTMLInputElement;
     this.maxSelectedDate = target.value;
     this.beginEmitUpdateProcess();
@@ -479,6 +479,11 @@ export class HistogramDateRange extends LitElement {
     if (e.key === 'Enter') {
       const target = e.currentTarget as HTMLInputElement;
       target.blur();
+      if (target.id === 'date-min') {
+        this.handleMinDateInput(e);
+      } else if (target.id === 'date-max') {
+        this.handleMaxDateInput(e);
+      }
     }
   }
 

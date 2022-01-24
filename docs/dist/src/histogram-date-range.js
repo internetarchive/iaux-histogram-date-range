@@ -302,6 +302,11 @@ export let HistogramDateRange = class extends LitElement {
     if (e.key === "Enter") {
       const target = e.currentTarget;
       target.blur();
+      if (target.id === "date-min") {
+        this.handleMinDateInput(e);
+      } else if (target.id === "date-max") {
+        this.handleMaxDateInput(e);
+      }
     }
   }
   get currentDateRangeString() {

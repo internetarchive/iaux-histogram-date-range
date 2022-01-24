@@ -1,4 +1,3 @@
-/* eslint-disable no-debugger */
 import { html, fixture, expect, oneEvent, aTimeout } from '@open-wc/testing';
 
 import { HistogramDateRange } from '../src/histogram-date-range';
@@ -46,9 +45,9 @@ async function createCustomElementInHTMLContainer(): Promise<HistogramDateRange>
 describe('HistogramDateRange', () => {
   it('shows scaled histogram bars when provided with data', async () => {
     const el = await createCustomElementInHTMLContainer();
-    const bars = (el.shadowRoot?.querySelectorAll(
+    const bars = el.shadowRoot?.querySelectorAll(
       '.bar'
-    ) as unknown) as SVGRectElement[];
+    ) as unknown as SVGRectElement[];
     const heights = Array.from(bars).map(b => b.height.baseVal.value);
 
     expect(heights).to.eql([38, 7, 50]);
@@ -63,9 +62,13 @@ describe('HistogramDateRange', () => {
       '#date-min'
     ) as HTMLInputElement;
 
+    const pressEnterEvent = new KeyboardEvent('keyup', {
+      key: 'Enter',
+    });
+
     // valid min date
     minDateInput.value = '1950';
-    minDateInput.dispatchEvent(new Event('blur'));
+    minDateInput.dispatchEvent(pressEnterEvent);
 
     expect(Math.floor(el.minSliderX)).to.eq(84);
     expect(el.minSelectedDate).to.eq('1/1/1950'); // set to correct format
@@ -86,8 +89,7 @@ describe('HistogramDateRange', () => {
 
     // set valid max date
     maxDateInput.value = '3/12/1975';
-    maxDateInput.dispatchEvent(new Event('blur'));
-    await el.updateComplete;
+    maxDateInput.dispatchEvent(pressEnterEvent);
 
     expect(Math.floor(el.maxSliderX)).to.eq(121);
     expect(maxDateInput.value).to.eq('3/12/1975');
@@ -274,9 +276,9 @@ describe('HistogramDateRange', () => {
     // include a number which will require commas (1,000,000)
     el.bins = [1000000, 1, 100];
     await aTimeout(10);
-    const bars = (el.shadowRoot?.querySelectorAll(
+    const bars = el.shadowRoot?.querySelectorAll(
       '.bar'
-    ) as unknown) as SVGRectElement[];
+    ) as unknown as SVGRectElement[];
     const tooltip = el.shadowRoot?.querySelector('#tooltip') as HTMLDivElement;
     expect(tooltip.innerText).to.eq('');
 
@@ -302,9 +304,9 @@ describe('HistogramDateRange', () => {
 
   it('does not show tooltip while dragging', async () => {
     const el = await createCustomElementInHTMLContainer();
-    const bars = (el.shadowRoot?.querySelectorAll(
+    const bars = el.shadowRoot?.querySelectorAll(
       '.bar'
-    ) as unknown) as SVGRectElement[];
+    ) as unknown as SVGRectElement[];
     const tooltip = el.shadowRoot?.querySelector('#tooltip') as HTMLDivElement;
     expect(tooltip.innerText).to.eq('');
     const minSlider = el.shadowRoot?.querySelector('#slider-min') as SVGElement;
@@ -371,7 +373,6 @@ describe('HistogramDateRange', () => {
 
     leftBarToClick.dispatchEvent(new Event('click'));
     await el.updateComplete;
-    debugger;
     expect(el.minSelectedDate).to.eq('1910'); // range was extended to left
 
     const rightBarToClick = Array.from(
@@ -441,6 +442,31 @@ describe('HistogramDateRange', () => {
     expect(maxDateInput.value).to.eq('5000');
   });
 
+  it('handles year values less than 1000 by overriding date format to just display year', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range
+          dateFormat="M/D/YYYY"
+          minDate="-2000"
+          maxDate="2000"
+          minSelectedDate="-500"
+          maxSelectedDate="500"
+          bins="[33, 1, 100]"
+        >
+        </histogram-date-range>
+      `
+    );
+    const minDateInput = el.shadowRoot?.querySelector(
+      '#date-min'
+    ) as HTMLInputElement;
+    expect(minDateInput.value).to.eq('-500');
+
+    const maxDateInput = el.shadowRoot?.querySelector(
+      '#date-max'
+    ) as HTMLInputElement;
+    expect(maxDateInput.value).to.eq('500');
+  });
+
   it('handles missing data', async () => {
     let el = await fixture<HistogramDateRange>(
       html`<histogram-date-range>
@@ -466,9 +492,9 @@ describe('HistogramDateRange', () => {
         </histogram-date-range>
       `
     );
-    const bars = (el.shadowRoot?.querySelectorAll(
+    const bars = el.shadowRoot?.querySelectorAll(
       '.bar'
-    ) as unknown) as SVGRectElement[];
+    ) as unknown as SVGRectElement[];
     const heights = Array.from(bars).map(b => b.height.baseVal.value);
     expect(heights).to.eql([157]);
   });
