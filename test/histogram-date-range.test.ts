@@ -499,6 +499,20 @@ describe('HistogramDateRange', () => {
     expect(heights).to.eql([157]);
   });
 
+  it('correctly displays small diff between max and min values', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range bins="[1519,2643,1880,2041,1638,1441]">
+        </histogram-date-range>
+      `
+    );
+    const bars = el.shadowRoot?.querySelectorAll(
+      '.bar'
+    ) as unknown as SVGRectElement[];
+    const heights = Array.from(bars).map(b => b.height.baseVal.value);
+    expect(heights).to.eql([37, 40, 38, 38, 37, 36]);
+  });
+
   it('has a disabled state', async () => {
     const el = await fixture<HistogramDateRange>(
       html`

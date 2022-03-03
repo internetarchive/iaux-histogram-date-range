@@ -147,8 +147,7 @@ export class HistogramDateRange extends LitElement {
     const maxValue = Math.max(...this.bins);
     // if there is no difference between the min and max values, use a range of
     // 1 because log scaling will fail if the range is 0
-    const valueRange =
-      minValue === maxValue ? 1 : Math.log1p(maxValue - minValue);
+    const valueRange = minValue === maxValue ? 1 : Math.log1p(maxValue);
     const valueScale = this.height / valueRange;
     const dateScale = this.dateRangeMS / this._numBins;
     return this.bins.map((v: number, i: number) => {

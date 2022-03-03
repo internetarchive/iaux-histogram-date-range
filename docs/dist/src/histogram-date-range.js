@@ -125,7 +125,7 @@ export let HistogramDateRange = class extends LitElement {
   calculateHistData() {
     const minValue = Math.min(...this.bins);
     const maxValue = Math.max(...this.bins);
-    const valueRange = minValue === maxValue ? 1 : Math.log1p(maxValue - minValue);
+    const valueRange = minValue === maxValue ? 1 : Math.log1p(maxValue);
     const valueScale = this.height / valueRange;
     const dateScale = this.dateRangeMS / this._numBins;
     return this.bins.map((v, i) => {
