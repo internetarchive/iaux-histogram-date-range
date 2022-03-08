@@ -1,0 +1,23 @@
+html {
+  font-size: 10px;
+  font-family: sans-serif;
+}
+body {
+  background: white;
+}
+.container {
+  margin-top: 20px;
+  display: grid;
+  justify-content: center;
+}
+.description {
+  margin: 10px auto;
+}
+.received-events {
+  position: absolute;
+  top: 0;
+}
+button {
+  font-size: 100%;
+  margin: 10px auto;
+}
