@@ -45,9 +45,9 @@ async function createCustomElementInHTMLContainer(): Promise<HistogramDateRange>
 describe('HistogramDateRange', () => {
   it('shows scaled histogram bars when provided with data', async () => {
     const el = await createCustomElementInHTMLContainer();
-    const bars = el.shadowRoot?.querySelectorAll(
+    const bars = (el.shadowRoot?.querySelectorAll(
       '.bar'
-    ) as unknown as SVGRectElement[];
+    ) as unknown) as SVGRectElement[];
     const heights = Array.from(bars).map(b => b.height.baseVal.value);
 
     expect(heights).to.eql([38, 7, 50]);
@@ -276,9 +276,9 @@ describe('HistogramDateRange', () => {
     // include a number which will require commas (1,000,000)
     el.bins = [1000000, 1, 100];
     await aTimeout(10);
-    const bars = el.shadowRoot?.querySelectorAll(
+    const bars = (el.shadowRoot?.querySelectorAll(
       '.bar'
-    ) as unknown as SVGRectElement[];
+    ) as unknown) as SVGRectElement[];
     const tooltip = el.shadowRoot?.querySelector('#tooltip') as HTMLDivElement;
     expect(tooltip.innerText).to.eq('');
 
@@ -304,9 +304,9 @@ describe('HistogramDateRange', () => {
 
   it('does not show tooltip while dragging', async () => {
     const el = await createCustomElementInHTMLContainer();
-    const bars = el.shadowRoot?.querySelectorAll(
+    const bars = (el.shadowRoot?.querySelectorAll(
       '.bar'
-    ) as unknown as SVGRectElement[];
+    ) as unknown) as SVGRectElement[];
     const tooltip = el.shadowRoot?.querySelector('#tooltip') as HTMLDivElement;
     expect(tooltip.innerText).to.eq('');
     const minSlider = el.shadowRoot?.querySelector('#slider-min') as SVGElement;
@@ -492,9 +492,9 @@ describe('HistogramDateRange', () => {
         </histogram-date-range>
       `
     );
-    const bars = el.shadowRoot?.querySelectorAll(
+    const bars = (el.shadowRoot?.querySelectorAll(
       '.bar'
-    ) as unknown as SVGRectElement[];
+    ) as unknown) as SVGRectElement[];
     const heights = Array.from(bars).map(b => b.height.baseVal.value);
     expect(heights).to.eql([157]);
   });
@@ -506,9 +506,9 @@ describe('HistogramDateRange', () => {
         </histogram-date-range>
       `
     );
-    const bars = el.shadowRoot?.querySelectorAll(
+    const bars = (el.shadowRoot?.querySelectorAll(
       '.bar'
-    ) as unknown as SVGRectElement[];
+    ) as unknown) as SVGRectElement[];
     const heights = Array.from(bars).map(b => b.height.baseVal.value);
     expect(heights).to.eql([37, 40, 38, 38, 37, 36]);
   });
@@ -567,5 +567,29 @@ describe('HistogramDateRange', () => {
         ?.querySelector('ia-activity-indicator')
         ?.attributes?.getNamedItem('mode')?.value
     ).to.eq('processing');
+  });
+
+  it('can use LitElement bound properties', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range
+          .minDate=${1900}
+          .maxDate=${'Dec 4, 2020'}
+          .minSelectedDate=${2012}
+          .maxSelectedDate=${2019}
+          .bins=${[33, 1, 100]}
+        >
+        </histogram-date-range>
+      `
+    );
+    const minDateInput = el.shadowRoot?.querySelector(
+      '#date-min'
+    ) as HTMLInputElement;
+    expect(minDateInput.value).to.eq('2012');
+
+    const maxDateInput = el.shadowRoot?.querySelector(
+      '#date-max'
+    ) as HTMLInputElement;
+    expect(maxDateInput.value).to.eq('2019');
   });
 });

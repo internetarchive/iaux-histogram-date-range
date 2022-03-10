@@ -69,10 +69,10 @@ export class HistogramDateRange extends LitElement {
   @property({ type: Number }) tooltipWidth = TOOLTIP_WIDTH;
   @property({ type: Number }) tooltipHeight = TOOLTIP_HEIGHT;
   @property({ type: Number }) updateDelay = UPDATE_DEBOUNCE_DELAY_MS;
-  @property() dateFormat = DATE_FORMAT;
-  @property() missingDataMessage = MISSING_DATA;
-  @property() minDate = '';
-  @property() maxDate = '';
+  @property({ type: String }) dateFormat = DATE_FORMAT;
+  @property({ type: String }) missingDataMessage = MISSING_DATA;
+  @property({ type: String }) minDate = '';
+  @property({ type: String }) maxDate = '';
   @property({ type: Boolean }) disabled = false;
   @property({ type: Object }) bins: number[] = [];
 
@@ -490,15 +490,20 @@ export class HistogramDateRange extends LitElement {
     return `${this.minSelectedDate}:${this.maxSelectedDate}`;
   }
 
-  private getMSFromString(date: string): number {
-    const digitGroupCount = (date.split(/(\d+)/).length - 1) / 2;
+  private getMSFromString(date: unknown): number {
+    // It's possible that `date` is not a string in certain situations.
+    // For instance if you use LitElement bindings and the date is `2000`,
+    // it will be treated as a number instead of a string. This just makes sure
+    // we're dealing with a string.
+    const stringified = typeof date === 'string' ? date : String(date);
+    const digitGroupCount = (stringified.split(/(\d+)/).length - 1) / 2;
     if (digitGroupCount === 1) {
       // if there's just a single set of digits, assume it's a year
       const dateObj = new Date(0, 0); // start at January 1, 1900
-      dateObj.setFullYear(Number(date)); // override year
+      dateObj.setFullYear(Number(stringified)); // override year
       return dateObj.getTime(); // get time in milliseconds
     }
-    return dayjs(date, [this.dateFormat, DATE_FORMAT]).valueOf();
+    return dayjs(stringified, [this.dateFormat, DATE_FORMAT]).valueOf();
   }
 
   /**
@@ -573,7 +578,7 @@ export class HistogramDateRange extends LitElement {
     <svg
       id="${id}"
       class="
-      ${this.disabled ? '' : 'draggable'} 
+      ${this.disabled ? '' : 'draggable'}
       ${this._isDragging ? 'dragging' : ''}"
       @pointerdown="${this.drag}"
     >
@@ -836,7 +841,7 @@ export class HistogramDateRange extends LitElement {
       <div
         id="container"
         class="
-          noselect 
+          noselect
           ${this._isDragging ? 'dragging' : ''}
         "
         style="width: ${this.width}px"
