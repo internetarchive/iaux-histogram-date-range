@@ -9,6 +9,7 @@
   <script type="module">
     import '../dist/src/histogram-date-range.js';
     let eventCount = 0;
+    import '../dist/demo/app-root.js';
     // listen to events from the component and display the data received from them
     document.addEventListener('histogramDateRangeUpdated', e => {
       document.querySelector('.received-events').innerHTML =
@@ -17,6 +18,8 @@
   </script>
   <body>
     <pre class="received-events"></pre>
+
+    <app-root></app-root>
 
     <div class="container">
       <div class="description">
@@ -69,7 +72,7 @@
 
     <div class="container">
       <div class="description">small year range and few bins</div>
-      <histogram-date-range width="175" tooltipwidth="120" 
+      <histogram-date-range width="175" tooltipwidth="120"
         mindate="2008" maxdate="2016" bins="[76104,866978,1151617,986331,218672,107410,3324]">
       </histogram-date-range>
     </div>
@@ -104,8 +107,8 @@
         minDate="1900"
         maxDate="2021"
         bins="[
-            74, 67, 17, 66, 49, 93, 47, 61, 32, 46, 53, 2, 13, 45, 67, 17, 66, 
-            49, 93, 47, 61, 32, 32, 70, 37, 74, 67, 17, 66, 49, 93, 47, 61, 32 
+            74, 67, 17, 66, 49, 93, 47, 61, 32, 46, 53, 2, 13, 45, 67, 17, 66,
+            49, 93, 47, 61, 32, 32, 70, 37, 74, 67, 17, 66, 49, 93, 47, 61, 32
           ]"
       ></histogram-date-range>
       <button id="loading-toggle">toggle loading</button>
