@@ -313,13 +313,14 @@ export let HistogramDateRange = class extends LitElement {
     return `${this.minSelectedDate}:${this.maxSelectedDate}`;
   }
   getMSFromString(date) {
-    const digitGroupCount = (date.split(/(\d+)/).length - 1) / 2;
+    const stringified = typeof date === "string" ? date : String(date);
+    const digitGroupCount = (stringified.split(/(\d+)/).length - 1) / 2;
     if (digitGroupCount === 1) {
       const dateObj = new Date(0, 0);
-      dateObj.setFullYear(Number(date));
+      dateObj.setFullYear(Number(stringified));
       return dateObj.getTime();
     }
-    return dayjs(date, [this.dateFormat, DATE_FORMAT]).valueOf();
+    return dayjs(stringified, [this.dateFormat, DATE_FORMAT]).valueOf();
   }
   handleBarClick(e) {
     const dataset = e.currentTarget.dataset;
@@ -363,7 +364,7 @@ export let HistogramDateRange = class extends LitElement {
     <svg
       id="${id}"
       class="
-      ${this.disabled ? "" : "draggable"} 
+      ${this.disabled ? "" : "draggable"}
       ${this._isDragging ? "dragging" : ""}"
       @pointerdown="${this.drag}"
     >
@@ -496,7 +497,7 @@ export let HistogramDateRange = class extends LitElement {
       <div
         id="container"
         class="
-          noselect 
+          noselect
           ${this._isDragging ? "dragging" : ""}
         "
         style="width: ${this.width}px"
@@ -641,16 +642,16 @@ __decorate([
   property({type: Number})
 ], HistogramDateRange.prototype, "updateDelay", 2);
 __decorate([
-  property()
+  property({type: String})
 ], HistogramDateRange.prototype, "dateFormat", 2);
 __decorate([
-  property()
+  property({type: String})
 ], HistogramDateRange.prototype, "missingDataMessage", 2);
 __decorate([
-  property()
+  property({type: String})
 ], HistogramDateRange.prototype, "minDate", 2);
 __decorate([
-  property()
+  property({type: String})
 ], HistogramDateRange.prototype, "maxDate", 2);
 __decorate([
   property({type: Boolean})
