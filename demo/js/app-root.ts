@@ -1,6 +1,6 @@
 import { LitElement, html, TemplateResult } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import '../src/histogram-date-range';
+import '../../src/histogram-date-range';
 
 interface DataSource {
   minDate: unknown;
