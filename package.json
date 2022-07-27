@@ -20,9 +20,9 @@
     "test:watch": "tsc && concurrently -k -r \"tsc --watch --preserveWatchOutput\" \"wtr --watch\""
   },
   "dependencies": {
-    "@internetarchive/ia-activity-indicator": "^0.0.2",
+    "@internetarchive/ia-activity-indicator": "^0.0.3",
     "dayjs": "^1.10.7",
-    "lit": "^2.1.1"
+    "lit": "^2.2.7"
   },
   "devDependencies": {
     "@open-wc/eslint-config": "^7.0.0",
