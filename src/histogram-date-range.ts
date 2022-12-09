@@ -10,10 +10,19 @@ import {
 } from 'lit';
 import { property, state, customElement } from 'lit/decorators.js';
 import { live } from 'lit/directives/live.js';
-import dayjs from 'dayjs/esm/index.js';
-import customParseFormat from 'dayjs/esm/plugin/customParseFormat';
-dayjs.extend(customParseFormat);
 import '@internetarchive/ia-activity-indicator/ia-activity-indicator';
+
+/* eslint-disable-next-line */
+/* @ts-ignore Import module -- JS, so no types */
+import dayjs from 'https://esm.archive.org/dayjs@^1.10.7';
+/* eslint-disable-next-line */
+/* @ts-ignore Import module -- JS, so no types */
+import customParseFormat from 'https://esm.archive.org/dayjs@1.9.4/esm/plugin/customParseFormat';
+// NOTE: using a specific *earlier* pegged commit for the plugin ^, because esm.archive.org is has a
+// problem creating later versions where the `export` of an included `utils.js` gets mangled.  Eg:
+// https://github.com/internetarchive/esbuild_es5/commit/ce19e8b841282c0e94d2b8e6830fd7744b2216c2#diff-4b2ed47327851d566740a30ce5f60271c059ae67eff2006bc07bb7c4fcee8b50L296
+
+dayjs.extend(customParseFormat);
 
 // these values can be overridden via the component's HTML (camelCased) attributes
 const WIDTH = 180;
