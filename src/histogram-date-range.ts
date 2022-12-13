@@ -310,7 +310,8 @@ export class HistogramDateRange extends LitElement {
    * @param e PointerEvent from the slider being moved
    */
   private move = (e: PointerEvent): void => {
-    const newX = e.offsetX - this._dragOffset;
+    const histogramClientX = this.getBoundingClientRect().x;
+    const newX = e.clientX - histogramClientX - this._dragOffset;
     const slider = this._currentSlider as SVGRectElement;
     if ((slider.id as SliderId) === 'slider-min') {
       this.minSelectedDate = this.translatePositionToDate(
@@ -419,15 +420,8 @@ export class HistogramDateRange extends LitElement {
       (this._currentSlider.id as SliderId) === 'slider-min'
         ? this.minSliderX
         : this.maxSliderX;
-    this._dragOffset = e.offsetX - sliderX;
-    // work around Firefox issue where e.offsetX seems to be not based on current
-    // element but on background element
-    if (
-      this._dragOffset > this.sliderWidth ||
-      this._dragOffset < -this.sliderWidth
-    ) {
-      this._dragOffset = 0;
-    }
+    const histogramClientX = this.getBoundingClientRect().x;
+    this._dragOffset = e.clientX - histogramClientX - sliderX;
   }
 
   /**
