@@ -45,9 +45,9 @@ async function createCustomElementInHTMLContainer(): Promise<HistogramDateRange>
 describe('HistogramDateRange', () => {
   it('shows scaled histogram bars when provided with data', async () => {
     const el = await createCustomElementInHTMLContainer();
-    const bars = (el.shadowRoot?.querySelectorAll(
+    const bars = el.shadowRoot?.querySelectorAll(
       '.bar'
-    ) as unknown) as SVGRectElement[];
+    ) as unknown as SVGRectElement[];
     const heights = Array.from(bars).map(b => b.height.baseVal.value);
 
     expect(heights).to.eql([38, 7, 50]);
@@ -171,7 +171,7 @@ describe('HistogramDateRange', () => {
     expect(classList.contains('dragging')).to.be.true;
 
     // slide to right
-    window.dispatchEvent(new PointerEvent('pointermove', { clientX: 70 }));
+    window.dispatchEvent(new PointerEvent('pointermove', { clientX: 60 }));
     await el.updateComplete;
 
     // slider has moved
@@ -197,7 +197,7 @@ describe('HistogramDateRange', () => {
 
     // slide to left
     maxSlider.dispatchEvent(new PointerEvent('pointerdown', { clientX: 195 }));
-    window.dispatchEvent(new PointerEvent('pointermove', { clientX: 160 }));
+    window.dispatchEvent(new PointerEvent('pointermove', { clientX: 165 }));
     await el.updateComplete;
 
     // slider has moved
@@ -276,9 +276,9 @@ describe('HistogramDateRange', () => {
     // include a number which will require commas (1,000,000)
     el.bins = [1000000, 1, 100];
     await aTimeout(10);
-    const bars = (el.shadowRoot?.querySelectorAll(
+    const bars = el.shadowRoot?.querySelectorAll(
       '.bar'
-    ) as unknown) as SVGRectElement[];
+    ) as unknown as SVGRectElement[];
     const tooltip = el.shadowRoot?.querySelector('#tooltip') as HTMLDivElement;
     expect(tooltip.innerText).to.eq('');
 
@@ -304,9 +304,9 @@ describe('HistogramDateRange', () => {
 
   it('does not show tooltip while dragging', async () => {
     const el = await createCustomElementInHTMLContainer();
-    const bars = (el.shadowRoot?.querySelectorAll(
+    const bars = el.shadowRoot?.querySelectorAll(
       '.bar'
-    ) as unknown) as SVGRectElement[];
+    ) as unknown as SVGRectElement[];
     const tooltip = el.shadowRoot?.querySelector('#tooltip') as HTMLDivElement;
     expect(tooltip.innerText).to.eq('');
     const minSlider = el.shadowRoot?.querySelector('#slider-min') as SVGElement;
@@ -492,9 +492,9 @@ describe('HistogramDateRange', () => {
         </histogram-date-range>
       `
     );
-    const bars = (el.shadowRoot?.querySelectorAll(
+    const bars = el.shadowRoot?.querySelectorAll(
       '.bar'
-    ) as unknown) as SVGRectElement[];
+    ) as unknown as SVGRectElement[];
     const heights = Array.from(bars).map(b => b.height.baseVal.value);
     expect(heights).to.eql([157]);
   });
@@ -506,9 +506,9 @@ describe('HistogramDateRange', () => {
         </histogram-date-range>
       `
     );
-    const bars = (el.shadowRoot?.querySelectorAll(
+    const bars = el.shadowRoot?.querySelectorAll(
       '.bar'
-    ) as unknown) as SVGRectElement[];
+    ) as unknown as SVGRectElement[];
     const heights = Array.from(bars).map(b => b.height.baseVal.value);
     expect(heights).to.eql([37, 40, 38, 38, 37, 36]);
   });
