@@ -18,10 +18,10 @@ import {
 } from "../../_snowpack/pkg/lit.js";
 import {property, state, customElement} from "../../_snowpack/pkg/lit/decorators.js";
 import {live} from "../../_snowpack/pkg/lit/directives/live.js";
-import dayjs from "../../_snowpack/pkg/dayjs/esm/index.js";
-import customParseFormat from "../../_snowpack/pkg/dayjs/esm/plugin/customParseFormat.js";
-dayjs.extend(customParseFormat);
 import "../../_snowpack/pkg/@internetarchive/ia-activity-indicator/ia-activity-indicator.js";
+import dayjs from "https://esm.archive.org/dayjs@^1.10.7";
+import customParseFormat from "https://esm.archive.org/dayjs@1.9.4/esm/plugin/customParseFormat";
+dayjs.extend(customParseFormat);
 const WIDTH = 180;
 const HEIGHT = 40;
 const SLIDER_WIDTH = 10;
@@ -90,7 +90,8 @@ export let HistogramDateRange = class extends LitElement {
       this._isDragging = false;
     };
     this.move = (e) => {
-      const newX = e.offsetX - this._dragOffset;
+      const histogramClientX = this.getBoundingClientRect().x;
+      const newX = e.clientX - histogramClientX - this._dragOffset;
       const slider = this._currentSlider;
       if (slider.id === "slider-min") {
         this.minSelectedDate = this.translatePositionToDate(this.validMinSliderX(newX));
@@ -272,10 +273,8 @@ export let HistogramDateRange = class extends LitElement {
   setDragOffset(e) {
     this._currentSlider = e.currentTarget;
     const sliderX = this._currentSlider.id === "slider-min" ? this.minSliderX : this.maxSliderX;
-    this._dragOffset = e.offsetX - sliderX;
-    if (this._dragOffset > this.sliderWidth || this._dragOffset < -this.sliderWidth) {
-      this._dragOffset = 0;
-    }
+    const histogramClientX = this.getBoundingClientRect().x;
+    this._dragOffset = e.clientX - histogramClientX - sliderX;
   }
   translatePositionToDate(x) {
     const milliseconds = Math.ceil((x - this.sliderWidth) * this.dateRangeMS / this._histWidth);

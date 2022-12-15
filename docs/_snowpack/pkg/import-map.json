@@ -1,8 +1,6 @@
 {
   "imports": {
     "@internetarchive/ia-activity-indicator/ia-activity-indicator": "./@internetarchive/ia-activity-indicator/ia-activity-indicator.js",
-    "dayjs/esm/index.js": "./dayjs/esm/index.js",
-    "dayjs/esm/plugin/customParseFormat": "./dayjs/esm/plugin/customParseFormat.js",
     "lit": "./lit.js",
     "lit/decorators.js": "./lit/decorators.js",
     "lit/directives/live.js": "./lit/directives/live.js"
