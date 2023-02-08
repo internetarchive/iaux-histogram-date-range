@@ -467,14 +467,18 @@ export class HistogramDateRange extends LitElement {
 
   private handleMinDateInput(e: Event): void {
     const target = e.currentTarget as HTMLInputElement;
-    this.minSelectedDate = target.value;
-    this.beginEmitUpdateProcess();
+    if (target.value !== this.minSelectedDate) {
+      this.minSelectedDate = target.value;
+      this.beginEmitUpdateProcess();
+    }
   }
 
   private handleMaxDateInput(e: Event): void {
     const target = e.currentTarget as HTMLInputElement;
-    this.maxSelectedDate = target.value;
-    this.beginEmitUpdateProcess();
+    if (target.value !== this.maxSelectedDate) {
+      this.maxSelectedDate = target.value;
+      this.beginEmitUpdateProcess();
+    }
   }
 
   private handleKeyUp(e: KeyboardEvent): void {
