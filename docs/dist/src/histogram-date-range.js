@@ -289,13 +289,17 @@ export let HistogramDateRange = class extends LitElement {
   }
   handleMinDateInput(e) {
     const target = e.currentTarget;
-    this.minSelectedDate = target.value;
-    this.beginEmitUpdateProcess();
+    if (target.value !== this.minSelectedDate) {
+      this.minSelectedDate = target.value;
+      this.beginEmitUpdateProcess();
+    }
   }
   handleMaxDateInput(e) {
     const target = e.currentTarget;
-    this.maxSelectedDate = target.value;
-    this.beginEmitUpdateProcess();
+    if (target.value !== this.maxSelectedDate) {
+      this.maxSelectedDate = target.value;
+      this.beginEmitUpdateProcess();
+    }
   }
   handleKeyUp(e) {
     if (e.key === "Enter") {
@@ -458,6 +462,12 @@ export let HistogramDateRange = class extends LitElement {
       />
     `;
   }
+  get minLabelTemplate() {
+    return html`<label for="date-min" class="sr-only">Minimum date:</label>`;
+  }
+  get maxLabelTemplate() {
+    return html`<label for="date-max" class="sr-only">Maximum date:</label>`;
+  }
   get tooltipTemplate() {
     return html`
       <style>
@@ -516,9 +526,9 @@ export let HistogramDateRange = class extends LitElement {
             ${this.minSliderTemplate} ${this.maxSliderTemplate}
           </svg>
           <div id="inputs">
-            ${this.minInputTemplate}
+            ${this.minLabelTemplate} ${this.minInputTemplate}
             <div class="dash">-</div>
-            ${this.maxInputTemplate}
+            ${this.maxLabelTemplate} ${this.maxInputTemplate}
           </div>
         </div>
       </div>
@@ -620,6 +630,19 @@ HistogramDateRange.styles = css`
       text-align: center;
       font-size: ${inputFontSize};
       font-family: ${inputFontFamily};
+    }
+    .sr-only {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: 0 !important;
+      overflow: hidden !important;
+      white-space: nowrap !important;
+      clip: rect(1px, 1px, 1px, 1px) !important;
+      -webkit-clip-path: inset(50%) !important;
+      clip-path: inset(50%) !important;
     }
   `;
 __decorate([
