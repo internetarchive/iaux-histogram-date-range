@@ -145,10 +145,6 @@ class IAActivityIndicator extends s {
         0% {
           transform: rotate(-360deg);
         }
-        100% {
-          /* This frame is supposed to be inferred, but Safari doesn't rotate it unless we're explicit */
-          transform: rotate(0deg);
-        }
       }
 
       @keyframes dot {

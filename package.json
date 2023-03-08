@@ -20,7 +20,7 @@
     "test:watch": "tsc && concurrently -k -r \"tsc --watch --preserveWatchOutput\" \"wtr --watch\""
   },
   "dependencies": {
-    "@internetarchive/ia-activity-indicator": "^0.0.4",
+    "@internetarchive/ia-activity-indicator": "^0.0.3",
     "dayjs": "^1.10.7",
     "lit": "^2.2.7"
   },
