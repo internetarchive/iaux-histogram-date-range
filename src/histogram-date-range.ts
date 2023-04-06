@@ -893,6 +893,7 @@ export class HistogramDateRange extends LitElement {
             ${this.minLabelTemplate} ${this.minInputTemplate}
             <div class="dash">-</div>
             ${this.maxLabelTemplate} ${this.maxInputTemplate}
+            <slot name="inputs-right-side"></slot>
           </div>
         </div>
       </div>
