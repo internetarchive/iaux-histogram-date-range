@@ -41,6 +41,15 @@ npm i @internetarchive/histogram-date-range
 ></histogram-date-range>
 ```
 
+A slot named `inputs-right-side` is available for inserting elements to the right
+of the min/max date input fields, e.g.:
+
+```html
+<histogram-date-range>
+  <button slot="inputs-right-side">Apply</button>
+</histogram-date-range>
+```
+
 ## Linting with ESLint, Prettier, and Types
 
 To scan the project for linting errors, run

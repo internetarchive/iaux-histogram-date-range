@@ -529,6 +529,7 @@ export let HistogramDateRange = class extends LitElement {
             ${this.minLabelTemplate} ${this.minInputTemplate}
             <div class="dash">-</div>
             ${this.maxLabelTemplate} ${this.maxInputTemplate}
+            <slot name="inputs-right-side"></slot>
           </div>
         </div>
       </div>
@@ -621,6 +622,7 @@ HistogramDateRange.styles = css`
     #inputs .dash {
       position: relative;
       bottom: -1px;
+      align-self: center; /* Otherwise the dash sticks to the top while the inputs grow */
     }
     input {
       width: ${inputWidth};
