@@ -836,6 +836,7 @@ export class HistogramDateRange extends LitElement {
     #inputs .dash {
       position: relative;
       bottom: -1px;
+      align-self: center; /* Otherwise the dash sticks to the top while the inputs grow */
     }
     input {
       width: ${inputWidth};
