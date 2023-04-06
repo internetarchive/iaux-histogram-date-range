@@ -43,6 +43,7 @@ const selectedRangeColor = css`var(--histogramDateRangeSelectedRangeColor, #DBE0
 const barIncludedFill = css`var(--histogramDateRangeBarIncludedFill, #2C2C2C)`;
 const activityIndicatorColor = css`var(--histogramDateRangeActivityIndicator, #2C2C2C)`;
 const barExcludedFill = css`var(--histogramDateRangeBarExcludedFill, #CCCCCC)`;
+const inputRowMargin = css`var(--histogramDateRangeInputRowMargin, 0)`;
 const inputBorder = css`var(--histogramDateRangeInputBorder, 0.5px solid #2C2C2C)`;
 const inputWidth = css`var(--histogramDateRangeInputWidth, 35px)`;
 const inputFontSize = css`var(--histogramDateRangeInputFontSize, 1.2rem)`;
@@ -832,6 +833,7 @@ export class HistogramDateRange extends LitElement {
     #inputs {
       display: flex;
       justify-content: center;
+      margin: ${inputRowMargin};
     }
     #inputs .dash {
       position: relative;
