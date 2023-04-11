@@ -85,6 +85,8 @@ export class HistogramDateRange extends LitElement {
   @property({ type: String }) maxDate = '';
   @property({ type: Boolean }) disabled = false;
   @property({ type: Object }) bins: number[] = [];
+  /** If true, update events will not be canceled by the date inputs receiving focus */
+  @property({ type: Boolean }) updateWhileFocused = false;
 
   // internal reactive properties not exposed as attributes
   @state() private _tooltipOffset = 0;
@@ -466,6 +468,12 @@ export class HistogramDateRange extends LitElement {
     return Math.min(Math.max(x, minValue), maxValue);
   }
 
+  private handleInputFocus(): void {
+    if (!this.updateWhileFocused) {
+      this.cancelPendingUpdateEvent();
+    }
+  }
+
   private handleMinDateInput(e: Event): void {
     const target = e.currentTarget as HTMLInputElement;
     if (target.value !== this.minSelectedDate) {
@@ -686,7 +694,7 @@ export class HistogramDateRange extends LitElement {
         id="date-min"
         placeholder="${this.dateFormat}"
         type="text"
-        @focus="${this.cancelPendingUpdateEvent}"
+        @focus="${this.handleInputFocus}"
         @blur="${this.handleMinDateInput}"
         @keyup="${this.handleKeyUp}"
         .value="${live(this.minSelectedDate)}"
@@ -701,7 +709,7 @@ export class HistogramDateRange extends LitElement {
         id="date-max"
         placeholder="${this.dateFormat}"
         type="text"
-        @focus="${this.cancelPendingUpdateEvent}"
+        @focus="${this.handleInputFocus}"
         @blur="${this.handleMaxDateInput}"
         @keyup="${this.handleKeyUp}"
         .value="${live(this.maxSelectedDate)}"

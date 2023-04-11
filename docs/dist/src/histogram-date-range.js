@@ -60,6 +60,7 @@ export let HistogramDateRange = class extends LitElement {
     this.maxDate = "";
     this.disabled = false;
     this.bins = [];
+    this.updateWhileFocused = false;
     this._tooltipOffset = 0;
     this._tooltipVisible = false;
     this._isDragging = false;
@@ -288,6 +289,11 @@ export let HistogramDateRange = class extends LitElement {
   clamp(x, minValue, maxValue) {
     return Math.min(Math.max(x, minValue), maxValue);
   }
+  handleInputFocus() {
+    if (!this.updateWhileFocused) {
+      this.cancelPendingUpdateEvent();
+    }
+  }
   handleMinDateInput(e) {
     const target = e.currentTarget;
     if (target.value !== this.minSelectedDate) {
@@ -441,7 +447,7 @@ export let HistogramDateRange = class extends LitElement {
         id="date-min"
         placeholder="${this.dateFormat}"
         type="text"
-        @focus="${this.cancelPendingUpdateEvent}"
+        @focus="${this.handleInputFocus}"
         @blur="${this.handleMinDateInput}"
         @keyup="${this.handleKeyUp}"
         .value="${live(this.minSelectedDate)}"
@@ -455,7 +461,7 @@ export let HistogramDateRange = class extends LitElement {
         id="date-max"
         placeholder="${this.dateFormat}"
         type="text"
-        @focus="${this.cancelPendingUpdateEvent}"
+        @focus="${this.handleInputFocus}"
         @blur="${this.handleMaxDateInput}"
         @keyup="${this.handleKeyUp}"
         .value="${live(this.maxSelectedDate)}"
@@ -685,6 +691,9 @@ __decorate([
 __decorate([
   property({type: Object})
 ], HistogramDateRange.prototype, "bins", 2);
+__decorate([
+  property({type: Boolean})
+], HistogramDateRange.prototype, "updateWhileFocused", 2);
 __decorate([
   state()
 ], HistogramDateRange.prototype, "_tooltipOffset", 2);
