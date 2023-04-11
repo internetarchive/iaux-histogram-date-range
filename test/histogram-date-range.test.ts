@@ -104,6 +104,95 @@ describe('HistogramDateRange', () => {
     expect(maxDateInput.value).to.eq('12/31/2199');
   });
 
+  it('when updateWhileFocused option is true, updates are fired upon changing input focus', async () => {
+    const el = await createCustomElementInHTMLContainer();
+    el.updateWhileFocused = true;
+    await el.updateComplete;
+
+    let updateEventFired = false;
+    el.addEventListener(
+      'histogramDateRangeUpdated',
+      () => (updateEventFired = true)
+    );
+
+    /* -------------------------- minimum (left) slider ------------------------- */
+    const minDateInput = el.shadowRoot?.querySelector(
+      '#date-min'
+    ) as HTMLInputElement;
+
+    /* -------------------------- maximum (right) slider ------------------------- */
+    const maxDateInput = el.shadowRoot?.querySelector(
+      '#date-max'
+    ) as HTMLInputElement;
+
+    minDateInput.focus();
+
+    // set valid min date, but don't hit Enter -- just switch focus to the max date input
+    minDateInput.value = '1950';
+    maxDateInput.focus();
+    await el.updateComplete;
+    await aTimeout(0);
+
+    // update event should have fired, setting the minSelectedDate prop & slider position accordingly
+    expect(updateEventFired).to.be.true;
+    expect(Math.floor(el.minSliderX)).to.eq(84);
+    expect(el.minSelectedDate).to.eq('1/1/1950');
+
+    updateEventFired = false;
+    await el.updateComplete;
+
+    // set valid max date, but don't hit Enter -- just switch focus to the min date input
+    maxDateInput.value = '3/12/1975';
+    minDateInput.focus();
+    await el.updateComplete;
+    await aTimeout(0);
+
+    // update event should have fired, setting the maxSelectedDate prop & slider position accordingly
+    expect(updateEventFired).to.be.true;
+    expect(Math.floor(el.maxSliderX)).to.eq(121);
+    expect(el.maxSelectedDate).to.eq('3/12/1975');
+  });
+
+  it('when updateWhileFocused option is false (default), updates are not fired while one of the inputs remains focused', async () => {
+    const el = await createCustomElementInHTMLContainer();
+
+    let updateEventFired = false;
+    el.addEventListener(
+      'histogramDateRangeUpdated',
+      () => (updateEventFired = true)
+    );
+
+    /* -------------------------- minimum (left) slider ------------------------- */
+    const minDateInput = el.shadowRoot?.querySelector(
+      '#date-min'
+    ) as HTMLInputElement;
+
+    /* -------------------------- maximum (right) slider ------------------------- */
+    const maxDateInput = el.shadowRoot?.querySelector(
+      '#date-max'
+    ) as HTMLInputElement;
+
+    minDateInput.focus();
+
+    // set valid min date, but don't hit Enter -- just switch focus to the max date input
+    minDateInput.value = '1950';
+    maxDateInput.focus();
+    await el.updateComplete;
+    await aTimeout(0);
+
+    // update event should NOT have fired, because focus remains within the inputs
+    expect(updateEventFired).to.be.false;
+
+    // set valid max date, but don't hit Enter -- just switch focus to the min date input
+    maxDateInput.value = '3/12/1975';
+    minDateInput.focus();
+    await el.updateComplete;
+    await aTimeout(0);
+
+    // update event should NOT have fired, because focus remains within the inputs
+    expect(updateEventFired).to.be.false;
+  });
+
   it('handles invalid date inputs', async () => {
     const el = await createCustomElementInHTMLContainer();
 

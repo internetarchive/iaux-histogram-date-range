@@ -43,6 +43,7 @@ const selectedRangeColor = css`var(--histogramDateRangeSelectedRangeColor, #DBE0
 const barIncludedFill = css`var(--histogramDateRangeBarIncludedFill, #2C2C2C)`;
 const activityIndicatorColor = css`var(--histogramDateRangeActivityIndicator, #2C2C2C)`;
 const barExcludedFill = css`var(--histogramDateRangeBarExcludedFill, #CCCCCC)`;
+const inputRowMargin = css`var(--histogramDateRangeInputRowMargin, 0)`;
 const inputBorder = css`var(--histogramDateRangeInputBorder, 0.5px solid #2C2C2C)`;
 const inputWidth = css`var(--histogramDateRangeInputWidth, 35px)`;
 const inputFontSize = css`var(--histogramDateRangeInputFontSize, 1.2rem)`;
@@ -84,6 +85,8 @@ export class HistogramDateRange extends LitElement {
   @property({ type: String }) maxDate = '';
   @property({ type: Boolean }) disabled = false;
   @property({ type: Object }) bins: number[] = [];
+  /** If true, update events will not be canceled by the date inputs receiving focus */
+  @property({ type: Boolean }) updateWhileFocused = false;
 
   // internal reactive properties not exposed as attributes
   @state() private _tooltipOffset = 0;
@@ -465,6 +468,12 @@ export class HistogramDateRange extends LitElement {
     return Math.min(Math.max(x, minValue), maxValue);
   }
 
+  private handleInputFocus(): void {
+    if (!this.updateWhileFocused) {
+      this.cancelPendingUpdateEvent();
+    }
+  }
+
   private handleMinDateInput(e: Event): void {
     const target = e.currentTarget as HTMLInputElement;
     if (target.value !== this.minSelectedDate) {
@@ -685,7 +694,7 @@ export class HistogramDateRange extends LitElement {
         id="date-min"
         placeholder="${this.dateFormat}"
         type="text"
-        @focus="${this.cancelPendingUpdateEvent}"
+        @focus="${this.handleInputFocus}"
         @blur="${this.handleMinDateInput}"
         @keyup="${this.handleKeyUp}"
         .value="${live(this.minSelectedDate)}"
@@ -700,7 +709,7 @@ export class HistogramDateRange extends LitElement {
         id="date-max"
         placeholder="${this.dateFormat}"
         type="text"
-        @focus="${this.cancelPendingUpdateEvent}"
+        @focus="${this.handleInputFocus}"
         @blur="${this.handleMaxDateInput}"
         @keyup="${this.handleKeyUp}"
         .value="${live(this.maxSelectedDate)}"
@@ -832,10 +841,12 @@ export class HistogramDateRange extends LitElement {
     #inputs {
       display: flex;
       justify-content: center;
+      margin: ${inputRowMargin};
     }
     #inputs .dash {
       position: relative;
       bottom: -1px;
+      align-self: center; /* Otherwise the dash sticks to the top while the inputs grow */
     }
     input {
       width: ${inputWidth};
@@ -892,6 +903,7 @@ export class HistogramDateRange extends LitElement {
             ${this.minLabelTemplate} ${this.minInputTemplate}
             <div class="dash">-</div>
             ${this.maxLabelTemplate} ${this.maxInputTemplate}
+            <slot name="inputs-right-side"></slot>
           </div>
         </div>
       </div>
