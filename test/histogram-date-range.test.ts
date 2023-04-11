@@ -104,7 +104,7 @@ describe('HistogramDateRange', () => {
     expect(maxDateInput.value).to.eq('12/31/2199');
   });
 
-  it('when updateWhenFocused option is true, updates are fired upon changing input focus', async () => {
+  it('when updateWhileFocused option is true, updates are fired upon changing input focus', async () => {
     const el = await createCustomElementInHTMLContainer();
     el.updateWhileFocused = true;
     await el.updateComplete;
@@ -153,7 +153,7 @@ describe('HistogramDateRange', () => {
     expect(el.maxSelectedDate).to.eq('3/12/1975');
   });
 
-  it('when updateWhenFocused option is false (default), updates are not fired while one of the inputs remains focused', async () => {
+  it('when updateWhileFocused option is false (default), updates are not fired while one of the inputs remains focused', async () => {
     const el = await createCustomElementInHTMLContainer();
 
     let updateEventFired = false;
