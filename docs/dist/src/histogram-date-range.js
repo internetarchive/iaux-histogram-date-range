@@ -107,7 +107,7 @@ export let HistogramDateRange = class extends LitElement {
     super.disconnectedCallback();
   }
   updated(changedProps) {
-    if (changedProps.has("bins") || changedProps.has("minDate") || changedProps.has("maxDate") || changedProps.has("minSelectedDate") || changedProps.has("maxSelectedDate")) {
+    if (changedProps.has("bins") || changedProps.has("minDate") || changedProps.has("maxDate") || changedProps.has("minSelectedDate") || changedProps.has("maxSelectedDate") || changedProps.has("width") || changedProps.has("height")) {
       this.handleDataUpdate();
     }
   }

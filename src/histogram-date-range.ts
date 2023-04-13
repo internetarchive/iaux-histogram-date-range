@@ -122,7 +122,9 @@ export class HistogramDateRange extends LitElement {
       changedProps.has('minDate') ||
       changedProps.has('maxDate') ||
       changedProps.has('minSelectedDate') ||
-      changedProps.has('maxSelectedDate')
+      changedProps.has('maxSelectedDate') ||
+      changedProps.has('width') ||
+      changedProps.has('height')
     ) {
       this.handleDataUpdate();
     }
