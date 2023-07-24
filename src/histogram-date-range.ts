@@ -107,6 +107,7 @@ export class HistogramDateRange extends LitElement {
   private _histData: HistogramItem[] = [];
   private _emitUpdatedEventTimer?: ReturnType<typeof setTimeout>;
   private _previousDateRange = '';
+  private _dateFormatYear = true;
 
   /* eslint-enable lines-between-class-members */
 
@@ -141,6 +142,7 @@ export class HistogramDateRange extends LitElement {
     if (!this.hasBinData) {
       return;
     }
+    this._dateFormatYear = this.dateFormat === 'YYYY' ? true : false;
     this._histWidth = this.width - this.sliderWidth * 2;
     this._minDateMS = this.getMSFromString(this.minDate);
     this._maxDateMS = this.getMSFromString(this.maxDate);
@@ -255,14 +257,34 @@ export class HistogramDateRange extends LitElement {
 
   /** horizontal position of min date slider */
   get minSliderX(): number {
-    const x = this.translateDateToPosition(this.minSelectedDate);
+    const x = this._dateFormatYear
+      ? this.translateDateToPositionForMin(this.minSelectedDate)
+      : this.translateDateToPosition(this.minSelectedDate);
     return this.validMinSliderX(x);
   }
 
   /** horizontal position of max date slider */
   get maxSliderX(): number {
-    const x = this.translateDateToPosition(this.maxSelectedDate);
+    const x = this._dateFormatYear
+      ? this.translateDateToPositionForMax(this.maxSelectedDate)
+      : this.translateDateToPosition(this.maxSelectedDate);
     return this.validMaxSliderX(x);
+  }
+
+  /**
+   * number of slider movement
+   */
+  private get noSliderMove(): number {
+    let maxDate = Number(this.maxDate);
+    const dateRange = maxDate - Number(this.minDate);
+
+    // check difference value is odd or even
+    // if diff is even increment mindate by ones
+    if (this._numBins !== dateRange) {
+      maxDate = maxDate + 1;
+    }
+    const maxDateCus = this.getMSFromString(maxDate);
+    return maxDateCus - this._minDateMS;
   }
 
   private get dateRangeMS(): number {
@@ -335,6 +357,10 @@ export class HistogramDateRange extends LitElement {
       this.maxSelectedDate = this.translatePositionToDate(
         this.validMaxSliderX(newX)
       );
+      this.maxSelectedDate =
+        this.maxSelectedDate <= this.maxDate
+          ? this.maxSelectedDate
+          : this.maxDate;
     }
   };
 
@@ -350,7 +376,9 @@ export class HistogramDateRange extends LitElement {
     // allow the left slider to go right only to the right slider, even if the
     // max selected date is out of range
     const rightLimit = Math.min(
-      this.translateDateToPosition(this.maxSelectedDate),
+      this._dateFormatYear
+        ? this.translateDateToPositionForMin(this.maxSelectedDate)
+        : this.translateDateToPosition(this.maxSelectedDate),
       this.histogramRightEdgeX
     );
     newX = this.clamp(newX, this.histogramLeftEdgeX, rightLimit);
@@ -371,8 +399,10 @@ export class HistogramDateRange extends LitElement {
     // allow the right slider to go left only to the left slider, even if the
     // min selected date is out of range
     const leftLimit = Math.max(
-      this.histogramLeftEdgeX,
-      this.translateDateToPosition(this.minSelectedDate)
+      this.histogramLeftEdgeX - this._binWidth,
+      this._dateFormatYear
+        ? this.translateDateToPositionForMin(this.minSelectedDate)
+        : this.translateDateToPosition(this.minSelectedDate)
     );
     newX = this.clamp(newX, leftLimit, this.histogramRightEdgeX);
     const isInvalid =
@@ -408,7 +438,10 @@ export class HistogramDateRange extends LitElement {
       const options = {
         detail: {
           minDate: this.minSelectedDate,
-          maxDate: this.maxSelectedDate,
+          maxDate:
+            this.maxSelectedDate <= this.maxDate
+              ? this.maxSelectedDate
+              : this.maxDate,
         },
         bubbles: true,
         composed: true,
@@ -446,13 +479,15 @@ export class HistogramDateRange extends LitElement {
     // use Math.ceil to round up to fix case where input like 1/1/2010 would get
     // translated to 12/31/2009
     const milliseconds = Math.ceil(
-      ((x - this.sliderWidth) * this.dateRangeMS) / this._histWidth
+      ((x - this.sliderWidth) *
+        (this._dateFormatYear ? this.noSliderMove : this.dateRangeMS)) /
+        this._histWidth
     );
     return this.formatDate(this._minDateMS + milliseconds);
   }
 
   /**
-   * Returns slider x-position corresponding to given date
+   * Returns both slider x-position corresponding to given date
    *
    * @param date
    * @returns x-position of slider
@@ -462,6 +497,41 @@ export class HistogramDateRange extends LitElement {
     return (
       this.sliderWidth +
       ((milliseconds - this._minDateMS) * this._histWidth) / this.dateRangeMS
+    );
+  }
+
+  /**
+   * Returns min slider x-position corresponding to given date
+   *
+   * @param date
+   * @returns x-position of slider
+   */
+  private translateDateToPositionForMin(date: string): number {
+    const milliseconds = this.getMSFromString(date);
+    return (
+      this.sliderWidth +
+      ((milliseconds - this._minDateMS) * this._histWidth) /
+        (this._dateFormatYear ? this.noSliderMove : this.dateRangeMS)
+    );
+  }
+
+  /**
+   * Returns max slider x-position corresponding to given date
+   *
+   * @param date
+   * @returns x-position of slider
+   */
+  private translateDateToPositionForMax(date: string): number {
+    const setCustomDate = Number(date) == Number(this.maxDate);
+    const milliseconds = this.getMSFromString(
+      setCustomDate ? String(Number(date) + 1) : date
+    );
+
+    return (
+      this.sliderWidth +
+      this._binWidth +
+      ((milliseconds - this._minDateMS) * this._histWidth) /
+        (this._dateFormatYear ? this.noSliderMove : this.dateRangeMS)
     );
   }
 
@@ -539,14 +609,21 @@ export class HistogramDateRange extends LitElement {
         this.getMSFromString(dataset.binEnd)) /
       2;
     const distanceFromMinSlider = Math.abs(
-      clickPosition - this.getMSFromString(this.minSelectedDate)
+      clickPosition -
+        this.getMSFromString(
+          this._dateFormatYear
+            ? Number(this.minSelectedDate) - 1
+            : this.minSelectedDate
+        )
     );
     const distanceFromMaxSlider = Math.abs(
       clickPosition - this.getMSFromString(this.maxSelectedDate)
     );
     // update the selected range by moving the nearer slider
     if (distanceFromMinSlider < distanceFromMaxSlider) {
-      this.minSelectedDate = dataset.binStart;
+      this.minSelectedDate = this._dateFormatYear
+        ? dataset.binEnd
+        : dataset.binStart;
     } else {
       this.maxSelectedDate = dataset.binEnd;
     }
@@ -637,7 +714,7 @@ export class HistogramDateRange extends LitElement {
   get histogramTemplate(): SVGTemplateResult[] {
     const xScale = this._histWidth / this._numBins;
     const barWidth = xScale - 1;
-    let x = this.sliderWidth; // start at the left edge of the histogram
+    let x = this.sliderWidth + 0.5; // start at the left edge of the histogram
 
     // the stroke-dasharray style below creates a transparent border around the
     // right edge of the bar, which prevents user from encountering a gap
@@ -799,7 +876,7 @@ export class HistogramDateRange extends LitElement {
       bars */
       stroke: rgba(0, 0, 0, 0);
       /* ensure transparent stroke wide enough to cover gap between bars */
-      stroke-width: 2px;
+      stroke-width: 1px;
     }
     .bar:hover {
       /* highlight currently hovered bar */
