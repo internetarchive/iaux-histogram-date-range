@@ -14,7 +14,7 @@ import '@internetarchive/ia-activity-indicator/ia-activity-indicator';
 
 /* eslint-disable-next-line */
 /* @ts-ignore Import module -- JS, so no types */
-import dayjs from 'https://esm.archive.org/dayjs@^1.10.7';
+import dayjs from 'https://esm.archive.org/dayjs@1.11.10';
 /* eslint-disable-next-line */
 /* @ts-ignore Import module -- JS, so no types */
 import customParseFormat from 'https://esm.archive.org/dayjs@1.9.4/esm/plugin/customParseFormat';

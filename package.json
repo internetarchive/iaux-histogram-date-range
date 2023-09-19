@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@internetarchive/ia-activity-indicator": "^0.0.4",
-    "dayjs": "^1.10.7",
+    "dayjs": "1.11.10",
     "lit": "^2.2.7"
   },
   "devDependencies": {
