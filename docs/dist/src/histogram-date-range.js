@@ -19,7 +19,7 @@ import {
 import {property, state, customElement} from "../../_snowpack/pkg/lit/decorators.js";
 import {live} from "../../_snowpack/pkg/lit/directives/live.js";
 import "../../_snowpack/pkg/@internetarchive/ia-activity-indicator/ia-activity-indicator.js";
-import dayjs from "https://esm.archive.org/dayjs@^1.10.7";
+import dayjs from "https://esm.archive.org/dayjs@1.11.10";
 import customParseFormat from "https://esm.archive.org/dayjs@1.9.4/esm/plugin/customParseFormat";
 dayjs.extend(customParseFormat);
 const WIDTH = 180;
