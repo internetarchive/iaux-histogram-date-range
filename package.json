@@ -1,6 +1,6 @@
 {
   "name": "@internetarchive/histogram-date-range",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Internet Archive histogram date range picker",
   "license": "AGPL-3.0-only",
   "main": "dist/index.js",
