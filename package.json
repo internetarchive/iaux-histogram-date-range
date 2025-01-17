@@ -1,6 +1,6 @@
 {
   "name": "@internetarchive/histogram-date-range",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Internet Archive histogram date range picker",
   "license": "AGPL-3.0-only",
   "main": "dist/index.js",
@@ -20,17 +20,18 @@
     "test:watch": "tsc && concurrently -k -r \"tsc --watch --preserveWatchOutput\" \"wtr --watch\""
   },
   "dependencies": {
-    "@internetarchive/ia-activity-indicator": "^0.0.4",
-    "dayjs": "1.11.10",
-    "lit": "^2.2.7"
+    "@internetarchive/ia-activity-indicator": "^0.0.6",
+    "dayjs": "^1.11.13",
+    "lit": "^2.8.0"
   },
   "devDependencies": {
     "@open-wc/eslint-config": "^7.0.0",
     "@open-wc/testing": "^3.0.3",
+    "@types/mocha": "^10.0.10",
     "@typescript-eslint/eslint-plugin": "^5.10.0",
     "@typescript-eslint/parser": "^5.10.0",
     "@web/dev-server": "^0.1.29",
-    "@web/test-runner": "^0.13.25",
+    "@web/test-runner": "^0.19.0",
     "concurrently": "^7.0.0",
     "eslint": "^8.7.0",
     "eslint-config-prettier": "^8.3.0",
