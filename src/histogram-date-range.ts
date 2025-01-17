@@ -1,19 +1,18 @@
+import '@internetarchive/ia-activity-indicator';
+import dayjs from 'dayjs/esm';
+import customParseFormat from 'dayjs/esm/plugin/customParseFormat';
 import {
   css,
   html,
-  nothing,
   LitElement,
+  nothing,
   PropertyValues,
   svg,
   SVGTemplateResult,
   TemplateResult,
 } from 'lit';
-import { property, state, customElement } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 import { live } from 'lit/directives/live.js';
-import '@internetarchive/ia-activity-indicator';
-
-import dayjs from 'dayjs/esm';
-import customParseFormat from 'dayjs/esm/plugin/customParseFormat';
 
 dayjs.extend(customParseFormat);
 
