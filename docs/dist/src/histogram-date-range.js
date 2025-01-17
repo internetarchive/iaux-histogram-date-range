@@ -18,9 +18,9 @@ import {
 } from "../../_snowpack/pkg/lit.js";
 import {property, state, customElement} from "../../_snowpack/pkg/lit/decorators.js";
 import {live} from "../../_snowpack/pkg/lit/directives/live.js";
-import "../../_snowpack/pkg/@internetarchive/ia-activity-indicator/ia-activity-indicator.js";
-import dayjs from "https://esm.archive.org/dayjs@1.11.10";
-import customParseFormat from "https://esm.archive.org/dayjs@1.9.4/esm/plugin/customParseFormat";
+import "../../_snowpack/pkg/@internetarchive/ia-activity-indicator.js";
+import dayjs from "../../_snowpack/pkg/dayjs/esm.js";
+import customParseFormat from "../../_snowpack/pkg/dayjs/esm/plugin/customParseFormat.js";
 dayjs.extend(customParseFormat);
 const WIDTH = 180;
 const HEIGHT = 40;

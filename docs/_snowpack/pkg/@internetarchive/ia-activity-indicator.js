@@ -1,25 +1,46 @@
-import { s, r } from '../../common/lit-element-2ebaea62.js';
-import { $ } from '../../common/lit-html-ab4365d1.js';
+import { s, i } from '../common/lit-element-4616b61d.js';
+import { x } from '../common/lit-html-a4f3a51c.js';
+import { e, n } from '../common/query-assigned-elements-61aefe32.js';
 
-const IAActivityIndicatorMode = Object.freeze({
-  processing: 'processing',
-  complete: 'complete',
-});
+/******************************************************************************
+Copyright (c) Microsoft Corporation.
 
-class IAActivityIndicator extends s {
-  static get properties() {
-    return {
-      mode: { type: String },
-    };
-  }
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
 
-  constructor() {
-    super();
-    this.mode = IAActivityIndicatorMode.processing;
-  }
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+***************************************************************************** */
 
-  render() {
-    return $`
+function __decorate(decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+}
+
+var _SuppressedError = typeof SuppressedError === "function" ? SuppressedError : function (error, suppressed, message) {
+    var e = new Error(message);
+    return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
+};
+
+var IAActivityIndicatorMode;
+(function (IAActivityIndicatorMode) {
+    IAActivityIndicatorMode["processing"] = "processing";
+    IAActivityIndicatorMode["complete"] = "complete";
+})(IAActivityIndicatorMode || (IAActivityIndicatorMode = {}));
+let IAActivityIndicator = class IAActivityIndicator extends s {
+    constructor() {
+        super(...arguments);
+        this.mode = 'processing';
+    }
+    render() {
+        return x `
       <div class="${this.mode}">
         <svg
           viewBox="0 0 120 120"
@@ -69,15 +90,13 @@ class IAActivityIndicator extends s {
         </svg>
       </div>
     `;
-  }
-
-  static get styles() {
-    const checkmarkColorCss = r`var(--activityIndicatorCheckmarkColor, #31A481)`;
-    const completedRingColorCss = r`var(--activityIndicatorCompletedRingColor, #31A481)`;
-    const loadingRingColorCss = r`var(--activityIndicatorLoadingRingColor, #333333)`;
-    const loadingDotColorCss = r`var(--activityIndicatorLoadingDotColor, #333333)`;
-
-    return r`
+    }
+    static get styles() {
+        const checkmarkColorCss = i `var(--activityIndicatorCheckmarkColor, #31A481)`;
+        const completedRingColorCss = i `var(--activityIndicatorCompletedRingColor, #31A481)`;
+        const loadingRingColorCss = i `var(--activityIndicatorLoadingRingColor, #333333)`;
+        const loadingDotColorCss = i `var(--activityIndicatorLoadingDotColor, #333333)`;
+        return i `
       #completed-ring {
         fill: ${completedRingColorCss};
       }
@@ -163,7 +182,13 @@ class IAActivityIndicator extends s {
         }
       }
     `;
-  }
-}
+    }
+};
+__decorate([
+    n({ type: String })
+], IAActivityIndicator.prototype, "mode", void 0);
+IAActivityIndicator = __decorate([
+    e('ia-activity-indicator')
+], IAActivityIndicator);
 
-window.customElements.define('ia-activity-indicator', IAActivityIndicator);
+export { IAActivityIndicator, IAActivityIndicatorMode };
