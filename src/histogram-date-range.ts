@@ -13,6 +13,7 @@ import {
 } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { live } from 'lit/directives/live.js';
+import { classMap } from 'lit/directives/class-map.js';
 
 dayjs.extend(customParseFormat);
 
@@ -723,14 +724,17 @@ export class HistogramDateRange extends LitElement {
     // minimum, or facing towards the right (-1), ie maximum
     const k = id === 'slider-min' ? 1 : -1;
 
+    const sliderClasses = classMap({
+      slider: true,
+      draggable: !this.disabled,
+      dragging: this._isDragging,
+    });
+
     return svg`
     <svg
-      id="${id}"
-      class="
-      slider
-      ${this.disabled ? '' : 'draggable'}
-      ${this._isDragging ? 'dragging' : ''}"
-      @pointerdown="${this.drag}"
+      id=${id}
+      class=${sliderClasses}
+      @pointerdown=${this.drag}
     >
       <path d="${sliderShape} z" fill="${sliderColor}" />
       <rect
@@ -845,13 +849,13 @@ export class HistogramDateRange extends LitElement {
     return html`
       <input
         id="date-min"
-        placeholder="${this.dateFormat}"
+        placeholder=${this.dateFormat}
         type="text"
-        @focus="${this.handleInputFocus}"
-        @blur="${this.handleMinDateInput}"
-        @keyup="${this.handleKeyUp}"
-        .value="${live(this.minSelectedDate)}"
-        ?disabled="${this.disabled}"
+        @focus=${this.handleInputFocus}
+        @blur=${this.handleMinDateInput}
+        @keyup=${this.handleKeyUp}
+        .value=${live(this.minSelectedDate)}
+        ?disabled=${this.disabled}
       />
     `;
   }
@@ -860,13 +864,13 @@ export class HistogramDateRange extends LitElement {
     return html`
       <input
         id="date-max"
-        placeholder="${this.dateFormat}"
+        placeholder=${this.dateFormat}
         type="text"
-        @focus="${this.handleInputFocus}"
-        @blur="${this.handleMaxDateInput}"
-        @keyup="${this.handleKeyUp}"
-        .value="${live(this.maxSelectedDate)}"
-        ?disabled="${this.disabled}"
+        @focus=${this.handleInputFocus}
+        @blur=${this.handleMaxDateInput}
+        @keyup=${this.handleKeyUp}
+        .value=${live(this.maxSelectedDate)}
+        ?disabled=${this.disabled}
       />
     `;
   }
