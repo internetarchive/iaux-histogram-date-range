@@ -458,6 +458,9 @@ export class HistogramDateRange extends LitElement {
       this.minSelectedDate = this.translatePositionToDate(
         this.validMinSliderX(newX)
       );
+      if (this.getMSFromString(this.minSelectedDate) < this._minDateMS) {
+        this.minSelectedDate = this.minDate;
+      }
     } else {
       this.maxSelectedDate = this.translatePositionToDate(
         this.validMaxSliderX(newX)
