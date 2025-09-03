@@ -308,6 +308,55 @@ describe('HistogramDateRange', () => {
     window.dispatchEvent(new PointerEvent('pointermove', { clientX: 50 }));
     await el.updateComplete;
     expect(Math.round(maxSlider.getBoundingClientRect().x)).to.eq(268); // max slider didn't move
+
+    // try to slide max slider off the right edge
+    maxSlider.dispatchEvent(new PointerEvent('pointerdown', { clientX: 120 }));
+    window.dispatchEvent(new PointerEvent('pointermove', { clientX: 300 }));
+    await el.updateComplete;
+    expect(maxSlider.getBoundingClientRect().x).to.eq(298); // back to its initial position
+    expect(el.maxSelectedDate).to.equal('12/4/2020');
+  });
+
+  it('does not permit sliders to select dates outside the allowed range', async () => {
+    const el = await createCustomElementInHTMLContainer();
+    el.binSnapping = 'month';
+    el.dateFormat = 'YYYY-MM';
+    el.minDate = '2020-01';
+    el.maxDate = '2021-12';
+    el.minSelectedDate = '2020-01';
+    el.maxSelectedDate = '2021-12';
+    el.bins = [10, 20, 30, 40, 50, 60, 70, 80];
+    await el.updateComplete;
+
+    const minSlider = el.shadowRoot?.querySelector('#slider-min') as SVGElement;
+    const maxSlider = el.shadowRoot?.querySelector('#slider-max') as SVGElement;
+
+    const minDateInput = el.shadowRoot?.querySelector(
+      '#date-min'
+    ) as HTMLInputElement;
+    const maxDateInput = el.shadowRoot?.querySelector(
+      '#date-max'
+    ) as HTMLInputElement;
+
+    // initial state
+    expect(minSlider.getBoundingClientRect().x).to.eq(108, 'initial');
+    expect(maxSlider.getBoundingClientRect().x).to.eq(298, 'initial');
+    expect(minDateInput.value).to.eq('2020-01', 'initial');
+    expect(maxDateInput.value).to.eq('2021-12', 'initial');
+
+    // try dragging the min slider too far to the left
+    minSlider.dispatchEvent(new PointerEvent('pointerdown', { clientX: 0 }));
+    window.dispatchEvent(new PointerEvent('pointermove', { clientX: -50 }));
+    await el.updateComplete;
+    expect(minSlider.getBoundingClientRect().x).to.eq(108); // slider didn't move
+    expect(minDateInput.value).to.eq('2020-01'); // value unchanged
+
+    // try dragging the max slider too far to the right
+    maxSlider.dispatchEvent(new PointerEvent('pointerdown', { clientX: 195 }));
+    window.dispatchEvent(new PointerEvent('pointermove', { clientX: 250 }));
+    await el.updateComplete;
+    expect(maxSlider.getBoundingClientRect().x).to.eq(298); // slider didn't move
+    expect(maxDateInput.value).to.eq('2021-12'); // value unchanged
   });
 
   it("emits a custom event when the element's date range changes", async () => {
