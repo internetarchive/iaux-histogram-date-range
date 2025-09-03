@@ -714,6 +714,7 @@ describe('HistogramDateRange', () => {
       html`
         <histogram-date-range
           binSnapping="year"
+          dateFormat="YYYY"
           minDate="2001"
           maxDate="2005"
           bins="[10,20,30,40,50]"
@@ -725,6 +726,56 @@ describe('HistogramDateRange', () => {
     ) as unknown as SVGRectElement[];
     const tooltips = Array.from(bars).map(b => b.dataset.tooltip);
     expect(tooltips).to.eql(['2001', '2002', '2003', '2004', '2005']);
+  });
+
+  it('falls back to default date format for tooltips if no tooltip date format provided', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range
+          binSnapping="year"
+          minDate="2001"
+          maxDate="2005"
+          bins="[10,20,30,40,50]"
+        ></histogram-date-range>
+      `
+    );
+
+    const bars = el.shadowRoot?.querySelectorAll(
+      '.bar'
+    ) as unknown as SVGRectElement[];
+    let tooltips = Array.from(bars).map(b => b.dataset.tooltip);
+    expect(tooltips).to.eql(['2001', '2002', '2003', '2004', '2005']); // default YYYY date format
+
+    el.dateFormat = 'YYYY/MM';
+    el.minDate = '2001/01';
+    el.maxDate = '2005/01';
+    await el.updateComplete;
+
+    // Should use dateFormat fallback for tooltips
+    tooltips = Array.from(bars).map(b => b.dataset.tooltip);
+    expect(tooltips).to.eql([
+      '2001/01 - 2001/12',
+      '2002/01 - 2002/12',
+      '2003/01 - 2003/12',
+      '2004/01 - 2004/12',
+      '2005/01 - 2005/12',
+    ]);
+
+    el.dateFormat = 'YYYY';
+    el.tooltipDateFormat = 'MMMM YYYY';
+    el.minDate = '2001';
+    el.maxDate = '2005';
+    await el.updateComplete;
+
+    // Should use defined tooltipDateFormat for tooltips
+    tooltips = Array.from(bars).map(b => b.dataset.tooltip);
+    expect(tooltips).to.eql([
+      'January 2001 - December 2001',
+      'January 2002 - December 2002',
+      'January 2003 - December 2003',
+      'January 2004 - December 2004',
+      'January 2005 - December 2005',
+    ]);
   });
 
   it('has a disabled state', async () => {
