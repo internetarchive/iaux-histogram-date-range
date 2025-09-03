@@ -1,1 +1,4 @@
-export { HistogramDateRange } from './src/histogram-date-range';
+export {
+  HistogramDateRange,
+  BinSnappingInterval,
+} from './src/histogram-date-range';
