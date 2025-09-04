@@ -313,7 +313,7 @@ export class HistogramDateRange extends LitElement {
    * Falls back to `dateFormat` if not provided.
    */
   @property({ type: String }) get tooltipDateFormat(): string {
-    return this._tooltipDateFormat ?? this.dateFormat ?? DATE_FORMAT;
+    return this._tooltipDateFormat ?? this.dateFormat;
   }
 
   set tooltipDateFormat(value: string) {
