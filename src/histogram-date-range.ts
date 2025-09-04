@@ -13,6 +13,7 @@ import {
 } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { live } from 'lit/directives/live.js';
+import { classMap } from 'lit/directives/class-map.js';
 
 dayjs.extend(customParseFormat);
 
@@ -47,11 +48,14 @@ const tooltipFontFamily = css`var(--histogramDateRangeTooltipFontFamily, sans-se
 
 type SliderId = 'slider-min' | 'slider-max';
 
+export type BinSnappingInterval = 'none' | 'month' | 'year';
+
 interface HistogramItem {
   value: number;
   height: number;
   binStart: string;
   binEnd: string;
+  tooltip: string;
 }
 
 interface BarDataset extends DOMStringMap {
@@ -76,14 +80,28 @@ export class HistogramDateRange extends LitElement {
   @property({ type: String }) minDate = '';
   @property({ type: String }) maxDate = '';
   @property({ type: Boolean }) disabled = false;
-  @property({ type: Object }) bins: number[] = [];
+  @property({ type: Array }) bins: number[] = [];
   /** If true, update events will not be canceled by the date inputs receiving focus */
   @property({ type: Boolean }) updateWhileFocused = false;
+
+  /**
+   * What interval bins should be snapped to for determining their time ranges.
+   *  - `none` (default): Bins should each represent an identical duration of time,
+   *     without regard for the actual dates represented.
+   *  - `month`: Bins should each represent one or more full, non-overlapping months.
+   *     The bin ranges will be "snapped" to the nearest month boundaries, which can
+   *     result in bins that represent different amounts of time, particularly if the
+   *     provided bins do not evenly divide the provided date range, or if the months
+   *     represented are of different lengths.
+   *  - `year`: Same as `month`, but snapping to year boundaries instead of months.
+   */
+  @property({ type: String }) binSnapping: BinSnappingInterval = 'none';
 
   // internal reactive properties not exposed as attributes
   @state() private _tooltipOffset = 0;
   @state() private _tooltipContent?: TemplateResult;
   @state() private _tooltipVisible = false;
+  @state() private _tooltipDateFormat?: string;
   @state() private _isDragging = false;
   @state() private _isLoading = false;
 
@@ -107,7 +125,7 @@ export class HistogramDateRange extends LitElement {
     super.disconnectedCallback();
   }
 
-  updated(changedProps: PropertyValues): void {
+  willUpdate(changedProps: PropertyValues): void {
     // check for changes that would affect bin data calculations
     if (
       changedProps.has('bins') ||
@@ -116,7 +134,8 @@ export class HistogramDateRange extends LitElement {
       changedProps.has('minSelectedDate') ||
       changedProps.has('maxSelectedDate') ||
       changedProps.has('width') ||
-      changedProps.has('height')
+      changedProps.has('height') ||
+      changedProps.has('binSnapping')
     ) {
       this.handleDataUpdate();
     }
@@ -134,8 +153,15 @@ export class HistogramDateRange extends LitElement {
       return;
     }
     this._histWidth = this.width - this.sliderWidth * 2;
-    this._minDateMS = this.getMSFromString(this.minDate);
-    this._maxDateMS = this.getMSFromString(this.maxDate);
+
+    this._minDateMS = this.snapTimestamp(this.getMSFromString(this.minDate));
+    // NB: The max date string, converted as-is to ms, represents the *start* of the
+    // final date interval; we want the *end*, so we add any snap interval/offset.
+    this._maxDateMS =
+      this.snapTimestamp(
+        this.getMSFromString(this.maxDate) + this.snapInterval
+      ) + this.snapEndOffset;
+
     this._binWidth = this._histWidth / this._numBins;
     this._previousDateRange = this.currentDateRangeString;
     this._histData = this.calculateHistData();
@@ -145,25 +171,95 @@ export class HistogramDateRange extends LitElement {
     this.maxSelectedDate = this.maxSelectedDate
       ? this.maxSelectedDate
       : this.maxDate;
-    this.requestUpdate();
+  }
+
+  /**
+   * Rounds the given timestamp to the next full second.
+   */
+  private snapToNextSecond(timestamp: number): number {
+    return Math.ceil(timestamp / 1000) * 1000;
+  }
+
+  /**
+   * Rounds the given timestamp to the (approximate) nearest start of a month,
+   * such that dates up to and including the 15th of the month are rounded down,
+   * while dates past the 15th are rounded up.
+   */
+  private snapToMonth(timestamp: number): number {
+    const d = new Date(timestamp);
+    const [year, month, day] = [d.getFullYear(), d.getMonth(), d.getDate()];
+
+    return day < 16 // Obviously only an approximation, but good enough for snapping
+      ? new Date(year, month, 1).getTime()
+      : new Date(year, month + 1, 1).getTime();
+  }
+
+  /**
+   * Rounds the given timestamp to the (approximate) nearest start of a year,
+   * such that dates up to the end of June are rounded down, while dates in
+   * July or later are rounded up.
+   */
+  private snapToYear(timestamp: number): number {
+    const d = new Date(timestamp);
+    const [year, month] = [d.getFullYear(), d.getMonth()];
+
+    return month < 6 // NB: months are 0-indexed, so 6 = July
+      ? new Date(year, 0, 1).getTime()
+      : new Date(year + 1, 0, 1).getTime();
+  }
+
+  /**
+   * Rounds the given timestamp according to the `binSnapping` property.
+   * Default is simply to snap to the nearest full second.
+   */
+  private snapTimestamp(timestamp: number): number {
+    switch (this.binSnapping) {
+      case 'year':
+        return this.snapToYear(timestamp);
+      case 'month':
+        return this.snapToMonth(timestamp);
+      case 'none':
+      default:
+        // We still align it to second boundaries to resolve minor discrepancies
+        return this.snapToNextSecond(timestamp);
+    }
   }
 
   private calculateHistData(): HistogramItem[] {
+    const { bins, height, dateRangeMS, _numBins, _minDateMS } = this;
     const minValue = Math.min(...this.bins);
     const maxValue = Math.max(...this.bins);
     // if there is no difference between the min and max values, use a range of
     // 1 because log scaling will fail if the range is 0
     const valueRange = minValue === maxValue ? 1 : Math.log1p(maxValue);
-    const valueScale = this.height / valueRange;
-    const dateScale = this.dateRangeMS / this._numBins;
-    return this.bins.map((v: number, i: number) => {
+    const valueScale = height / valueRange;
+    const dateScale = dateRangeMS / _numBins;
+
+    return bins.map((v: number, i: number) => {
+      const binStartMS = this.snapTimestamp(i * dateScale + _minDateMS);
+      const binStart = this.formatDate(binStartMS);
+
+      const binEndMS =
+        this.snapTimestamp((i + 1) * dateScale + _minDateMS) +
+        this.snapEndOffset;
+      const binEnd = this.formatDate(binEndMS);
+
+      const tooltipStart = this.formatDate(binStartMS, this.tooltipDateFormat);
+      const tooltipEnd = this.formatDate(binEndMS, this.tooltipDateFormat);
+      // If start/end are the same, just render a single value
+      const tooltip =
+        tooltipStart === tooltipEnd
+          ? tooltipStart
+          : `${tooltipStart} - ${tooltipEnd}`;
+
       return {
         value: v,
         // use log scaling for the height of the bar to prevent tall bars from
         // making the smaller ones too small to see
         height: Math.floor(Math.log1p(v) * valueScale),
-        binStart: `${this.formatDate(i * dateScale + this._minDateMS)}`,
-        binEnd: `${this.formatDate((i + 1) * dateScale + this._minDateMS)}`,
+        binStart,
+        binEnd,
+        tooltip,
       };
     });
   }
@@ -185,6 +281,43 @@ export class HistogramDateRange extends LitElement {
 
   private get histogramRightEdgeX(): number {
     return this.width - this.sliderWidth;
+  }
+
+  /**
+   * Approximate size in ms of the interval to which bins are snapped.
+   */
+  private get snapInterval(): number {
+    const yearMS = 31_536_000_000; // A 365-day approximation of ms in a year
+    const monthMS = 2_592_000_000; // A 30-day approximation of ms in a month
+    switch (this.binSnapping) {
+      case 'year':
+        return yearMS;
+      case 'month':
+        return monthMS;
+      case 'none':
+      default:
+        return 0;
+    }
+  }
+
+  /**
+   * Offset added to the end of each bin to ensure disjoint intervals,
+   * depending on whether snapping is enabled and there are multiple bins.
+   */
+  private get snapEndOffset(): number {
+    return this.binSnapping !== 'none' && this._numBins > 1 ? -1 : 0;
+  }
+
+  /**
+   * Optional date format to use for tooltips only.
+   * Falls back to `dateFormat` if not provided.
+   */
+  @property({ type: String }) get tooltipDateFormat(): string {
+    return this._tooltipDateFormat ?? this.dateFormat;
+  }
+
+  set tooltipDateFormat(value: string) {
+    this._tooltipDateFormat = value;
   }
 
   /** component's loading (and disabled) state */
@@ -253,7 +386,10 @@ export class HistogramDateRange extends LitElement {
 
   /** horizontal position of max date slider */
   get maxSliderX(): number {
-    const x = this.translateDateToPosition(this.maxSelectedDate);
+    const maxSelectedDateMS = this.snapTimestamp(
+      this.getMSFromString(this.maxSelectedDate) + this.snapInterval
+    );
+    const x = this.translateDateToPosition(this.formatDate(maxSelectedDateMS));
     return this.validMaxSliderX(x);
   }
 
@@ -276,7 +412,7 @@ export class HistogramDateRange extends LitElement {
 
     this._tooltipContent = html`
       ${formattedNumItems} ${itemsText}<br />
-      ${dataset.binStart} - ${dataset.binEnd}
+      ${dataset.tooltip}
     `;
     this._tooltipVisible = true;
   }
@@ -327,6 +463,9 @@ export class HistogramDateRange extends LitElement {
       this.maxSelectedDate = this.translatePositionToDate(
         this.validMaxSliderX(newX)
       );
+      if (this.getMSFromString(this.maxSelectedDate) > this._maxDateMS) {
+        this.maxSelectedDate = this.maxDate;
+      }
     }
   };
 
@@ -435,9 +574,10 @@ export class HistogramDateRange extends LitElement {
    * @returns string representation of date
    */
   private translatePositionToDate(x: number): string {
-    // use Math.ceil to round up to fix case where input like 1/1/2010 would get
-    // translated to 12/31/2009
-    const milliseconds = Math.ceil(
+    // Snap to the nearest second, fixing the case where input like 1/1/2010
+    // would get translated to 12/31/2009 due to slight discrepancies from
+    // pixel boundaries and floating point error.
+    const milliseconds = this.snapToNextSecond(
       ((x - this.sliderWidth) * this.dateRangeMS) / this._histWidth
     );
     return this.formatDate(this._minDateMS + milliseconds);
@@ -584,13 +724,17 @@ export class HistogramDateRange extends LitElement {
     // minimum, or facing towards the right (-1), ie maximum
     const k = id === 'slider-min' ? 1 : -1;
 
+    const sliderClasses = classMap({
+      slider: true,
+      draggable: !this.disabled,
+      dragging: this._isDragging,
+    });
+
     return svg`
     <svg
-      id="${id}"
-      class="
-      ${this.disabled ? '' : 'draggable'}
-      ${this._isDragging ? 'dragging' : ''}"
-      @pointerdown="${this.drag}"
+      id=${id}
+      class=${sliderClasses}
+      @pointerdown=${this.drag}
     >
       <path d="${sliderShape} z" fill="${sliderColor}" />
       <rect
@@ -631,39 +775,58 @@ export class HistogramDateRange extends LitElement {
     const barWidth = xScale - 1;
     let x = this.sliderWidth; // start at the left edge of the histogram
 
-    // the stroke-dasharray style below creates a transparent border around the
-    // right edge of the bar, which prevents user from encountering a gap
-    // between adjacent bars (eg when viewing the tooltips or when trying to
-    // extend the range by clicking on a bar)
     return this._histData.map(data => {
+      const { minSelectedDate, maxSelectedDate } = this;
+      const barHeight = data.height;
+
+      const binIsBeforeMin = this.isBefore(data.binEnd, minSelectedDate);
+      const binIsAfterMax = this.isAfter(data.binStart, maxSelectedDate);
+      const barFill =
+        binIsBeforeMin || binIsAfterMax ? barExcludedFill : barIncludedFill;
+
+      // the stroke-dasharray style below creates a transparent border around the
+      // right edge of the bar, which prevents user from encountering a gap
+      // between adjacent bars (eg when viewing the tooltips or when trying to
+      // extend the range by clicking on a bar)
+      const barStyle = `stroke-dasharray: 0 ${barWidth} ${barHeight} ${barWidth} 0 ${barHeight}`;
+
       const bar = svg`
         <rect
           class="bar"
-          style='stroke-dasharray: 0 ${barWidth} ${data.height} ${barWidth} 0 ${
-        data.height
-      };'
-          x="${x}"
-          y="${this.height - data.height}"
-          width="${barWidth}"
-          height="${data.height}"
-          @pointerenter="${this.showTooltip}"
-          @pointerleave="${this.hideTooltip}"
-          @click="${this.handleBarClick}"
-          fill="${
-            x + barWidth >= this.minSliderX && x <= this.maxSliderX
-              ? barIncludedFill
-              : barExcludedFill
-          }"
-          data-num-items="${data.value}"
-          data-bin-start="${data.binStart}"
-          data-bin-end="${data.binEnd}"
+          style=${barStyle}
+          x=${x}
+          y=${this.height - barHeight}
+          width=${barWidth}
+          height=${barHeight}
+          @pointerenter=${this.showTooltip}
+          @pointerleave=${this.hideTooltip}
+          @click=${this.handleBarClick}
+          fill=${barFill}
+          data-num-items=${data.value}
+          data-bin-start=${data.binStart}
+          data-bin-end=${data.binEnd}
+          data-tooltip=${data.tooltip}
         />`;
       x += xScale;
       return bar;
     });
   }
 
-  private formatDate(dateMS: number): string {
+  /** Whether the first arg represents a date strictly before the second arg */
+  private isBefore(date1: string, date2: string): boolean {
+    const date1MS = this.getMSFromString(date1);
+    const date2MS = this.getMSFromString(date2);
+    return date1MS < date2MS;
+  }
+
+  /** Whether the first arg represents a date strictly after the second arg */
+  private isAfter(date1: string, date2: string): boolean {
+    const date1MS = this.getMSFromString(date1);
+    const date2MS = this.getMSFromString(date2);
+    return date1MS > date2MS;
+  }
+
+  private formatDate(dateMS: number, format: string = this.dateFormat): string {
     if (Number.isNaN(dateMS)) {
       return '';
     }
@@ -673,7 +836,7 @@ export class HistogramDateRange extends LitElement {
       // back to displaying only the year
       return String(date.year());
     }
-    return date.format(this.dateFormat);
+    return date.format(format);
   }
 
   /**
@@ -686,13 +849,13 @@ export class HistogramDateRange extends LitElement {
     return html`
       <input
         id="date-min"
-        placeholder="${this.dateFormat}"
+        placeholder=${this.dateFormat}
         type="text"
-        @focus="${this.handleInputFocus}"
-        @blur="${this.handleMinDateInput}"
-        @keyup="${this.handleKeyUp}"
-        .value="${live(this.minSelectedDate)}"
-        ?disabled="${this.disabled}"
+        @focus=${this.handleInputFocus}
+        @blur=${this.handleMinDateInput}
+        @keyup=${this.handleKeyUp}
+        .value=${live(this.minSelectedDate)}
+        ?disabled=${this.disabled}
       />
     `;
   }
@@ -701,13 +864,13 @@ export class HistogramDateRange extends LitElement {
     return html`
       <input
         id="date-max"
-        placeholder="${this.dateFormat}"
+        placeholder=${this.dateFormat}
         type="text"
-        @focus="${this.handleInputFocus}"
-        @blur="${this.handleMaxDateInput}"
-        @keyup="${this.handleKeyUp}"
-        .value="${live(this.maxSelectedDate)}"
-        ?disabled="${this.disabled}"
+        @focus=${this.handleInputFocus}
+        @blur=${this.handleMaxDateInput}
+        @keyup=${this.handleKeyUp}
+        .value=${live(this.maxSelectedDate)}
+        ?disabled=${this.disabled}
       />
     `;
   }
@@ -825,6 +988,9 @@ export class HistogramDateRange extends LitElement {
         transparent;
     }
     /****** slider ********/
+    .slider {
+      shape-rendering: crispEdges; /* So the slider doesn't get blurry if dragged between pixels */
+    }
     .draggable:hover {
       cursor: grab;
     }

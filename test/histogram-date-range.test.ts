@@ -248,7 +248,7 @@ describe('HistogramDateRange', () => {
 
     // initial state
     expect(minSlider.getBoundingClientRect().x).to.eq(108);
-    expect(Array.from(minSlider.classList).join(' ')).to.eq('draggable');
+    expect(minSlider.classList.contains('draggable')).to.be.true;
 
     // pointer down
     minSlider.dispatchEvent(new PointerEvent('pointerdown'));
@@ -308,6 +308,55 @@ describe('HistogramDateRange', () => {
     window.dispatchEvent(new PointerEvent('pointermove', { clientX: 50 }));
     await el.updateComplete;
     expect(Math.round(maxSlider.getBoundingClientRect().x)).to.eq(268); // max slider didn't move
+
+    // try to slide max slider off the right edge
+    maxSlider.dispatchEvent(new PointerEvent('pointerdown', { clientX: 120 }));
+    window.dispatchEvent(new PointerEvent('pointermove', { clientX: 300 }));
+    await el.updateComplete;
+    expect(maxSlider.getBoundingClientRect().x).to.eq(298); // back to its initial position
+    expect(el.maxSelectedDate).to.equal('12/4/2020');
+  });
+
+  it('does not permit sliders to select dates outside the allowed range', async () => {
+    const el = await createCustomElementInHTMLContainer();
+    el.binSnapping = 'month';
+    el.dateFormat = 'YYYY-MM';
+    el.minDate = '2020-01';
+    el.maxDate = '2021-12';
+    el.minSelectedDate = '2020-01';
+    el.maxSelectedDate = '2021-12';
+    el.bins = [10, 20, 30, 40, 50, 60, 70, 80];
+    await el.updateComplete;
+
+    const minSlider = el.shadowRoot?.querySelector('#slider-min') as SVGElement;
+    const maxSlider = el.shadowRoot?.querySelector('#slider-max') as SVGElement;
+
+    const minDateInput = el.shadowRoot?.querySelector(
+      '#date-min'
+    ) as HTMLInputElement;
+    const maxDateInput = el.shadowRoot?.querySelector(
+      '#date-max'
+    ) as HTMLInputElement;
+
+    // initial state
+    expect(minSlider.getBoundingClientRect().x).to.eq(108, 'initial');
+    expect(maxSlider.getBoundingClientRect().x).to.eq(298, 'initial');
+    expect(minDateInput.value).to.eq('2020-01', 'initial');
+    expect(maxDateInput.value).to.eq('2021-12', 'initial');
+
+    // try dragging the min slider too far to the left
+    minSlider.dispatchEvent(new PointerEvent('pointerdown', { clientX: 0 }));
+    window.dispatchEvent(new PointerEvent('pointermove', { clientX: -50 }));
+    await el.updateComplete;
+    expect(minSlider.getBoundingClientRect().x).to.eq(108); // slider didn't move
+    expect(minDateInput.value).to.eq('2020-01'); // value unchanged
+
+    // try dragging the max slider too far to the right
+    maxSlider.dispatchEvent(new PointerEvent('pointerdown', { clientX: 195 }));
+    window.dispatchEvent(new PointerEvent('pointermove', { clientX: 250 }));
+    await el.updateComplete;
+    expect(maxSlider.getBoundingClientRect().x).to.eq(298); // slider didn't move
+    expect(maxDateInput.value).to.eq('2021-12'); // value unchanged
   });
 
   it("emits a custom event when the element's date range changes", async () => {
@@ -602,6 +651,133 @@ describe('HistogramDateRange', () => {
     expect(heights).to.eql([37, 40, 38, 38, 37, 36]);
   });
 
+  it('correctly aligns bins to exact month boundaries when binSnapping=month', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range
+          binSnapping="month"
+          dateFormat="YYYY-MM"
+          tooltipDateFormat="MMM YYYY"
+          minDate="2020-01"
+          maxDate="2021-12"
+          bins="[10,20,30,40,50,60,70,80]"
+        ></histogram-date-range>
+      `
+    );
+    const bars = el.shadowRoot?.querySelectorAll(
+      '.bar'
+    ) as unknown as SVGRectElement[];
+    const tooltips = Array.from(bars).map(b => b.dataset.tooltip);
+    expect(tooltips).to.eql([
+      'Jan 2020 - Mar 2020',
+      'Apr 2020 - Jun 2020',
+      'Jul 2020 - Sep 2020',
+      'Oct 2020 - Dec 2020',
+      'Jan 2021 - Mar 2021',
+      'Apr 2021 - Jun 2021',
+      'Jul 2021 - Sep 2021',
+      'Oct 2021 - Dec 2021',
+    ]);
+  });
+
+  it('correctly aligns bins to exact year boundaries when binSnapping=year', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range
+          binSnapping="year"
+          minDate="2000"
+          maxDate="2019"
+          bins="[10,20,30,40,50,60,70,80,90,100]"
+        ></histogram-date-range>
+      `
+    );
+    const bars = el.shadowRoot?.querySelectorAll(
+      '.bar'
+    ) as unknown as SVGRectElement[];
+    const tooltips = Array.from(bars).map(b => b.dataset.tooltip);
+    expect(tooltips).to.eql([
+      '2000 - 2001',
+      '2002 - 2003',
+      '2004 - 2005',
+      '2006 - 2007',
+      '2008 - 2009',
+      '2010 - 2011',
+      '2012 - 2013',
+      '2014 - 2015',
+      '2016 - 2017',
+      '2018 - 2019',
+    ]);
+  });
+
+  it('does not duplicate start/end date in tooltips when representing a single year', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range
+          binSnapping="year"
+          dateFormat="YYYY"
+          minDate="2001"
+          maxDate="2005"
+          bins="[10,20,30,40,50]"
+        ></histogram-date-range>
+      `
+    );
+    const bars = el.shadowRoot?.querySelectorAll(
+      '.bar'
+    ) as unknown as SVGRectElement[];
+    const tooltips = Array.from(bars).map(b => b.dataset.tooltip);
+    expect(tooltips).to.eql(['2001', '2002', '2003', '2004', '2005']);
+  });
+
+  it('falls back to default date format for tooltips if no tooltip date format provided', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range
+          binSnapping="year"
+          minDate="2001"
+          maxDate="2005"
+          bins="[10,20,30,40,50]"
+        ></histogram-date-range>
+      `
+    );
+
+    const bars = el.shadowRoot?.querySelectorAll(
+      '.bar'
+    ) as unknown as SVGRectElement[];
+    let tooltips = Array.from(bars).map(b => b.dataset.tooltip);
+    expect(tooltips).to.eql(['2001', '2002', '2003', '2004', '2005']); // default YYYY date format
+
+    el.dateFormat = 'YYYY/MM';
+    el.minDate = '2001/01';
+    el.maxDate = '2005/01';
+    await el.updateComplete;
+
+    // Should use dateFormat fallback for tooltips
+    tooltips = Array.from(bars).map(b => b.dataset.tooltip);
+    expect(tooltips).to.eql([
+      '2001/01 - 2001/12',
+      '2002/01 - 2002/12',
+      '2003/01 - 2003/12',
+      '2004/01 - 2004/12',
+      '2005/01 - 2005/12',
+    ]);
+
+    el.dateFormat = 'YYYY';
+    el.tooltipDateFormat = 'MMMM YYYY';
+    el.minDate = '2001';
+    el.maxDate = '2005';
+    await el.updateComplete;
+
+    // Should use defined tooltipDateFormat for tooltips
+    tooltips = Array.from(bars).map(b => b.dataset.tooltip);
+    expect(tooltips).to.eql([
+      'January 2001 - December 2001',
+      'January 2002 - December 2002',
+      'January 2003 - December 2003',
+      'January 2004 - December 2004',
+      'January 2005 - December 2005',
+    ]);
+  });
+
   it('has a disabled state', async () => {
     const el = await fixture<HistogramDateRange>(
       html`
@@ -629,7 +805,7 @@ describe('HistogramDateRange', () => {
     await el.updateComplete;
 
     // cursor is not draggable if disabled
-    expect(Array.from(minSlider.classList).join(' ')).to.eq('');
+    expect(minSlider.classList.contains('draggable')).to.be.false;
 
     // attempt to slide to right
     window.dispatchEvent(new PointerEvent('pointermove', { clientX: 70 }));
