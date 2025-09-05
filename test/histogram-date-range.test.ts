@@ -580,7 +580,7 @@ describe('HistogramDateRange', () => {
     expect(maxDateInput.value).to.eq('5000');
   });
 
-  it('handles year values less than 1000 by overriding date format to just display year', async () => {
+  it('handles year values less than 1000 correctly', async () => {
     const el = await fixture<HistogramDateRange>(
       html`
         <histogram-date-range
@@ -597,12 +597,12 @@ describe('HistogramDateRange', () => {
     const minDateInput = el.shadowRoot?.querySelector(
       '#date-min'
     ) as HTMLInputElement;
-    expect(minDateInput.value).to.eq('-500');
+    expect(minDateInput.value).to.eq('1/1/-500');
 
     const maxDateInput = el.shadowRoot?.querySelector(
       '#date-max'
     ) as HTMLInputElement;
-    expect(maxDateInput.value).to.eq('500');
+    expect(maxDateInput.value).to.eq('1/1/500');
   });
 
   it('handles missing data', async () => {
@@ -680,6 +680,60 @@ describe('HistogramDateRange', () => {
     ]);
   });
 
+  it('correctly handles month snapping for years 0-99', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range
+          binSnapping="month"
+          dateFormat="YYYY-MM"
+          tooltipDateFormat="MMM YYYY"
+          minDate="0050-01"
+          maxDate="0065-12"
+          bins="[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32]"
+        ></histogram-date-range>
+      `
+    );
+
+    const bars = el.shadowRoot?.querySelectorAll(
+      '.bar'
+    ) as unknown as SVGRectElement[];
+    const tooltips = Array.from(bars).map(b => b.dataset.tooltip);
+    expect(tooltips).to.eql([
+      'Jan 50 - Jun 50',
+      'Jul 50 - Dec 50',
+      'Jan 51 - Jun 51',
+      'Jul 51 - Dec 51',
+      'Jan 52 - Jun 52',
+      'Jul 52 - Dec 52',
+      'Jan 53 - Jun 53',
+      'Jul 53 - Dec 53',
+      'Jan 54 - Jun 54',
+      'Jul 54 - Dec 54',
+      'Jan 55 - Jun 55',
+      'Jul 55 - Dec 55',
+      'Jan 56 - Jun 56',
+      'Jul 56 - Dec 56',
+      'Jan 57 - Jun 57',
+      'Jul 57 - Dec 57',
+      'Jan 58 - Jun 58',
+      'Jul 58 - Dec 58',
+      'Jan 59 - Jun 59',
+      'Jul 59 - Dec 59',
+      'Jan 60 - Jun 60',
+      'Jul 60 - Dec 60',
+      'Jan 61 - Jun 61',
+      'Jul 61 - Dec 61',
+      'Jan 62 - Jun 62',
+      'Jul 62 - Dec 62',
+      'Jan 63 - Jun 63',
+      'Jul 63 - Dec 63',
+      'Jan 64 - Jun 64',
+      'Jul 64 - Dec 64',
+      'Jan 65 - Jun 65',
+      'Jul 65 - Dec 65',
+    ]);
+  });
+
   it('correctly aligns bins to exact year boundaries when binSnapping=year', async () => {
     const el = await fixture<HistogramDateRange>(
       html`
@@ -707,6 +761,26 @@ describe('HistogramDateRange', () => {
       '2016 - 2017',
       '2018 - 2019',
     ]);
+  });
+
+  it('correctly handles year snapping for years 0-99', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range
+          binSnapping="year"
+          dateFormat="YYYY"
+          minDate="0020"
+          maxDate="0025"
+          bins="[1,2,3,4,5,6]"
+        ></histogram-date-range>
+      `
+    );
+
+    const bars = el.shadowRoot?.querySelectorAll(
+      '.bar'
+    ) as unknown as SVGRectElement[];
+    const tooltips = Array.from(bars).map(b => b.dataset.tooltip);
+    expect(tooltips).to.eql(['20', '21', '22', '23', '24', '25']);
   });
 
   it('does not duplicate start/end date in tooltips when representing a single year', async () => {

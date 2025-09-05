@@ -1,6 +1,7 @@
 import '@internetarchive/ia-activity-indicator';
 import dayjs from 'dayjs/esm';
 import customParseFormat from 'dayjs/esm/plugin/customParseFormat';
+import fixFirstCenturyYears from './plugins/fix-first-century-years';
 import {
   css,
   html,
@@ -16,6 +17,7 @@ import { live } from 'lit/directives/live.js';
 import { classMap } from 'lit/directives/class-map.js';
 
 dayjs.extend(customParseFormat);
+dayjs.extend(fixFirstCenturyYears);
 
 // these values can be overridden via the component's HTML (camelCased) attributes
 const WIDTH = 180;
@@ -186,12 +188,16 @@ export class HistogramDateRange extends LitElement {
    * while dates past the 15th are rounded up.
    */
   private snapToMonth(timestamp: number): number {
-    const d = new Date(timestamp);
-    const [year, month, day] = [d.getFullYear(), d.getMonth(), d.getDate()];
-
-    return day < 16 // Obviously only an approximation, but good enough for snapping
-      ? new Date(year, month, 1).getTime()
-      : new Date(year, month + 1, 1).getTime();
+    const d = dayjs(timestamp);
+    const monthsToAdd = d.date() < 16 ? 0 : 1;
+    const snapped = d
+      .add(monthsToAdd, 'month')
+      .date(1)
+      .hour(0)
+      .minute(0)
+      .second(0)
+      .millisecond(0); // First millisecond of the month
+    return snapped.valueOf();
   }
 
   /**
@@ -200,12 +206,17 @@ export class HistogramDateRange extends LitElement {
    * July or later are rounded up.
    */
   private snapToYear(timestamp: number): number {
-    const d = new Date(timestamp);
-    const [year, month] = [d.getFullYear(), d.getMonth()];
-
-    return month < 6 // NB: months are 0-indexed, so 6 = July
-      ? new Date(year, 0, 1).getTime()
-      : new Date(year + 1, 0, 1).getTime();
+    const d = dayjs(timestamp);
+    const yearsToAdd = d.month() < 6 ? 0 : 1;
+    const snapped = d
+      .add(yearsToAdd, 'year')
+      .month(0)
+      .date(1)
+      .hour(0)
+      .minute(0)
+      .second(0)
+      .millisecond(0); // First millisecond of the year
+    return snapped.valueOf();
   }
 
   /**
@@ -832,9 +843,12 @@ export class HistogramDateRange extends LitElement {
     }
     const date = dayjs(dateMS);
     if (date.year() < 1000) {
-      // years before 1000 don't play well with dayjs custom formatting, so fall
-      // back to displaying only the year
-      return String(date.year());
+      // years before 1000 don't play well with dayjs custom formatting, so work around dayjs
+      // by setting the year to a sentinel value and then replacing it instead.
+      // this is a bit hacky but it does the trick for essentially all reasonable cases
+      // until such time as we replace dayjs.
+      const tmpDate = date.year(199999);
+      return tmpDate.format(format).replace(/199999/g, date.year().toString());
     }
     return date.format(format);
   }
