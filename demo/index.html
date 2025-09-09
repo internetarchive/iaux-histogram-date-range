@@ -107,6 +107,21 @@
     </div>
 
     <div class="container">
+      <div class="clipped text-centered">
+        <div class="description">inside clipping container</div>
+        <histogram-date-range
+          width="175"
+          dateFormat="MM/YYYY"
+          binSnapping="month"
+          minDate="01/2000"
+          maxDate="12/2005"
+          bins="[1,12,2,11,3,10,4,9,5,8,6,7]"
+          style="--histogramDateRangeInputWidth: 50px;"
+        ></histogram-date-range>
+      </div>
+    </div>
+
+    <div class="container">
       <div class="description">
         default range with custom styling and date format
       </div>

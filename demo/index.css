@@ -10,6 +10,12 @@ body {
   display: grid;
   justify-content: center;
 }
+.clipped {
+  overflow: hidden;
+}
+.text-centered {
+  text-align: center;
+}
 .description {
   margin: 10px auto;
 }
