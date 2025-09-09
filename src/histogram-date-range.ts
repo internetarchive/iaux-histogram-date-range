@@ -12,9 +12,10 @@ import {
   SVGTemplateResult,
   TemplateResult,
 } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import { customElement, property, state, query } from 'lit/decorators.js';
 import { live } from 'lit/directives/live.js';
 import { classMap } from 'lit/directives/class-map.js';
+import { styleMap } from 'lit/directives/style-map.js';
 
 dayjs.extend(customParseFormat);
 dayjs.extend(fixFirstCenturyYears);
@@ -100,12 +101,14 @@ export class HistogramDateRange extends LitElement {
   @property({ type: String }) binSnapping: BinSnappingInterval = 'none';
 
   // internal reactive properties not exposed as attributes
-  @state() private _tooltipOffset = 0;
+  @state() private _tooltipOffsetX = 0;
+  @state() private _tooltipOffsetY = 0;
   @state() private _tooltipContent?: TemplateResult;
-  @state() private _tooltipVisible = false;
   @state() private _tooltipDateFormat?: string;
   @state() private _isDragging = false;
   @state() private _isLoading = false;
+
+  @query('#tooltip') private _tooltip!: HTMLDivElement;
 
   // non-reactive properties (changes don't auto-trigger re-rendering)
   private _minSelectedDate = '';
@@ -412,25 +415,39 @@ export class HistogramDateRange extends LitElement {
     if (this._isDragging || this.disabled) {
       return;
     }
+
     const target = e.currentTarget as SVGRectElement;
     const x = target.x.baseVal.value + this.sliderWidth / 2;
     const dataset = target.dataset as BarDataset;
     const itemsText = `item${dataset.numItems !== '1' ? 's' : ''}`;
     const formattedNumItems = Number(dataset.numItems).toLocaleString();
 
-    this._tooltipOffset =
-      x + (this._binWidth - this.sliderWidth - this.tooltipWidth) / 2;
+    const tooltipPadding = 2;
+    const bufferHeight = 9;
+    const heightAboveHistogram = bufferHeight + this.tooltipHeight;
+    const histogramBounds = this.getBoundingClientRect();
+    const barX = histogramBounds.x + x;
+    const histogramY = histogramBounds.y;
+
+    // Center the tooltip horizontally along the bar
+    this._tooltipOffsetX =
+      barX -
+      tooltipPadding +
+      (this._binWidth - this.sliderWidth - this.tooltipWidth) / 2 +
+      window.scrollX;
+    // Place the tooltip (with arrow) just above the top of the histogram bars
+    this._tooltipOffsetY = histogramY - heightAboveHistogram + window.scrollY;
 
     this._tooltipContent = html`
       ${formattedNumItems} ${itemsText}<br />
       ${dataset.tooltip}
     `;
-    this._tooltipVisible = true;
+    this._tooltip.showPopover?.();
   }
 
   private hideTooltip(): void {
     this._tooltipContent = undefined;
-    this._tooltipVisible = false;
+    this._tooltip.hidePopover?.();
   }
 
   // use arrow functions (rather than standard JS class instance methods) so
@@ -898,20 +915,15 @@ export class HistogramDateRange extends LitElement {
   }
 
   get tooltipTemplate(): TemplateResult {
+    const styles = styleMap({
+      width: `${this.tooltipWidth}px`,
+      height: `${this.tooltipHeight}px`,
+      top: `${this._tooltipOffsetY}px`,
+      left: `${this._tooltipOffsetX}px`,
+    });
+
     return html`
-      <style>
-        #tooltip {
-          width: ${this.tooltipWidth}px;
-          height: ${this.tooltipHeight}px;
-          top: ${-9 - this.tooltipHeight}px;
-          left: ${this._tooltipOffset}px;
-          display: ${this._tooltipVisible ? 'block' : 'none'};
-        }
-        #tooltip:after {
-          left: ${this.tooltipWidth / 2}px;
-        }
-      </style>
-      <div id="tooltip">${this._tooltipContent}</div>
+      <div id="tooltip" style=${styles} popover>${this._tooltipContent}</div>
     `;
   }
 
@@ -982,6 +994,8 @@ export class HistogramDateRange extends LitElement {
     #tooltip {
       position: absolute;
       background: ${tooltipBackgroundColor};
+      margin: 0;
+      border: 0;
       color: ${tooltipTextColor};
       text-align: center;
       border-radius: 3px;
@@ -990,12 +1004,14 @@ export class HistogramDateRange extends LitElement {
       font-family: ${tooltipFontFamily};
       touch-action: none;
       pointer-events: none;
+      overflow: visible;
     }
     #tooltip:after {
       content: '';
       position: absolute;
       margin-left: -5px;
       top: 100%;
+      left: 50%;
       /* arrow */
       border: 5px solid ${tooltipTextColor};
       border-color: ${tooltipBackgroundColor} transparent transparent
