@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 import { html, fixture, expect, oneEvent, aTimeout } from '@open-wc/testing';
 
 import { HistogramDateRange } from '../src/histogram-date-range';
