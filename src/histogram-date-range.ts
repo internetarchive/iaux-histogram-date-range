@@ -29,6 +29,10 @@ const TOOLTIP_HEIGHT = 30;
 const DATE_FORMAT = 'YYYY';
 const MISSING_DATA = 'no data';
 const UPDATE_DEBOUNCE_DELAY_MS = 0;
+const TOOLTIP_LABEL = 'item';
+
+// this function may be overridden only via Lit property expression or direct assignment
+const LOG_BAR_SCALING_FN = (binValue: number) => Math.log1p(binValue);
 
 // this constant is not set up to be overridden
 const SLIDER_CORNER_SIZE = 4;
@@ -99,6 +103,28 @@ export class HistogramDateRange extends LitElement {
    *  - `year`: Same as `month`, but snapping to year boundaries instead of months.
    */
   @property({ type: String }) binSnapping: BinSnappingInterval = 'none';
+
+  /**
+   * What label to use on tooltips to identify the type of data being represented.
+   * Defaults to `'item(s)'`.
+   */
+  @property({ type: String }) tooltipLabel = TOOLTIP_LABEL;
+
+  /**
+   * A function mapping bin values to a new value that determines how tall each bar will
+   * be in relation to the others.
+   *
+   * Default sizing function is the logarithm of the bin value, yielding more prominent
+   * bars for smaller values, at the cost of bars not being directly proportional to their
+   * values and having relatively smooth variation among values of a similar magnitude.
+   * This ensures that when the difference between the min and max values is large, small
+   * values are not as liable to completely disappear visually.
+   *
+   * For linearly-scaled bars, set this to the identity function.
+   */
+  @property({ attribute: false }) barScalingFunction: (
+    binValue: number
+  ) => number = LOG_BAR_SCALING_FN;
 
   // internal reactive properties not exposed as attributes
   @state() private _tooltipOffsetX = 0;
@@ -245,7 +271,8 @@ export class HistogramDateRange extends LitElement {
     const maxValue = Math.max(...this.bins);
     // if there is no difference between the min and max values, use a range of
     // 1 because log scaling will fail if the range is 0
-    const valueRange = minValue === maxValue ? 1 : Math.log1p(maxValue);
+    const valueRange =
+      minValue === maxValue ? 1 : this.barScalingFunction(maxValue);
     const valueScale = height / valueRange;
     const dateScale = dateRangeMS / _numBins;
 
@@ -270,7 +297,7 @@ export class HistogramDateRange extends LitElement {
         value: v,
         // use log scaling for the height of the bar to prevent tall bars from
         // making the smaller ones too small to see
-        height: Math.floor(Math.log1p(v) * valueScale),
+        height: Math.floor(this.barScalingFunction(v) * valueScale),
         binStart,
         binEnd,
         tooltip,
@@ -419,7 +446,9 @@ export class HistogramDateRange extends LitElement {
     const target = e.currentTarget as SVGRectElement;
     const x = target.x.baseVal.value + this.sliderWidth / 2;
     const dataset = target.dataset as BarDataset;
-    const itemsText = `item${dataset.numItems !== '1' ? 's' : ''}`;
+    const itemsText = `${this.tooltipLabel}${
+      dataset.numItems !== '1' ? 's' : ''
+    }`;
     const formattedNumItems = Number(dataset.numItems).toLocaleString();
 
     const tooltipPadding = 2;
