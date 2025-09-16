@@ -9,7 +9,7 @@
   <script type="module">
     import '../dist/src/histogram-date-range.js';
     let eventCount = 0;
-    import '../dist/demo/js/app-root.js';
+    import '../dist/demo/js/lit-histogram-wrapper.js';
     // listen to events from the component and display the data received from them
     document.addEventListener('histogramDateRangeUpdated', e => {
       document.querySelector('.received-events').innerHTML =
@@ -22,7 +22,14 @@
       <div class="description">
         histogram inside a lit element
       </div>
-      <app-root></app-root>
+      <lit-histogram-wrapper></lit-histogram-wrapper>
+
+      <div class="description">
+        bars scaled linearly (not logarithmic)
+      </div>
+      <lit-histogram-wrapper
+        barScaling="linear"
+      ></lit-histogram-wrapper>
 
       <div class="description">
         pre-selected range with 1000ms debounce delay
