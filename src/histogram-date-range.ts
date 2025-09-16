@@ -849,20 +849,28 @@ export class HistogramDateRange extends LitElement {
 
       const bar = svg`
         <rect
+          class="bar-pointer-target"
+          x=${x}
+          y="0"
+          width=${barWidth}
+          height=${this.height}
+          @pointerenter=${this.showTooltip}
+          @pointerleave=${this.hideTooltip}
+          @click=${this.handleBarClick}
+          fill="transparent"
+          data-num-items=${data.value}
+          data-bin-start=${data.binStart}
+          data-bin-end=${data.binEnd}
+          data-tooltip=${data.tooltip}
+        />
+        <rect
           class="bar"
           style=${barStyle}
           x=${x}
           y=${this.height - barHeight}
           width=${barWidth}
           height=${barHeight}
-          @pointerenter=${this.showTooltip}
-          @pointerleave=${this.hideTooltip}
-          @click=${this.handleBarClick}
           fill=${barFill}
-          data-num-items=${data.value}
-          data-bin-start=${data.binStart}
-          data-bin-end=${data.binEnd}
-          data-tooltip=${data.tooltip}
         />`;
       x += xScale;
       return bar;
@@ -1002,7 +1010,8 @@ export class HistogramDateRange extends LitElement {
       -ms-user-select: none; /* Internet Explorer/Edge */
       user-select: none; /* current Chrome, Edge, Opera and Firefox */
     }
-    .bar {
+    .bar,
+    .bar-pointer-target {
       /* create a transparent border around the hist bars to prevent "gaps" and
       flickering when moving around between bars. this also helps with handling
       clicks on the bars, preventing users from being able to click in between
@@ -1011,11 +1020,15 @@ export class HistogramDateRange extends LitElement {
       /* ensure transparent stroke wide enough to cover gap between bars */
       stroke-width: 2px;
     }
-    .bar:hover {
+    .bar {
+      /* ensure the bar's pointer target receives events, not the bar itself */
+      pointer-events: none;
+    }
+    .bar-pointer-target:hover + .bar {
       /* highlight currently hovered bar */
       fill-opacity: 0.7;
     }
-    .disabled .bar:hover {
+    .disabled .bar-pointer-target:hover + .bar {
       /* ensure no visual hover interaction when disabled */
       fill-opacity: 1;
     }
