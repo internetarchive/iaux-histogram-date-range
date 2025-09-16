@@ -49,7 +49,7 @@ describe('HistogramDateRange', () => {
     const bars = el.shadowRoot?.querySelectorAll(
       '.bar'
     ) as unknown as SVGRectElement[];
-    const heights = Array.from(bars).map(b => b.height.baseVal.value);
+    const heights = Array.from(bars, b => b.height.baseVal.value);
 
     expect(heights).to.eql([38, 7, 50]);
   });
@@ -416,7 +416,7 @@ describe('HistogramDateRange', () => {
     el.bins = [1000000, 1, 100];
     await aTimeout(10);
     const bars = el.shadowRoot?.querySelectorAll(
-      '.bar'
+      '.bar-pointer-target'
     ) as unknown as SVGRectElement[];
     const tooltip = el.shadowRoot?.querySelector('#tooltip') as HTMLDivElement;
     expect(tooltip.innerText).to.eq('');
@@ -441,10 +441,41 @@ describe('HistogramDateRange', () => {
     expect(tooltip.innerText).to.match(/^1 item\n4\/23\/1940 - 8\/13\/1980/);
   });
 
+  it('uses provided tooltip label', async () => {
+    const el = await createCustomElementInHTMLContainer();
+    el.bins = [1000000, 1, 100];
+    el.tooltipLabel = 'foobar';
+    await aTimeout(10);
+    const bars = el.shadowRoot?.querySelectorAll(
+      '.bar-pointer-target'
+    ) as unknown as SVGRectElement[];
+    const tooltip = el.shadowRoot?.querySelector('#tooltip') as HTMLDivElement;
+    expect(tooltip.innerText).to.eq('');
+
+    // hover
+    bars[0].dispatchEvent(new PointerEvent('pointerenter'));
+    await el.updateComplete;
+    expect(tooltip.innerText).to.match(
+      /^1,000,000 foobars\n1\/1\/1900 - 4\/23\/1940/
+    );
+    expect(getComputedStyle(tooltip).display).to.eq('block');
+
+    // leave
+    bars[0].dispatchEvent(new PointerEvent('pointerleave'));
+    await el.updateComplete;
+    expect(getComputedStyle(tooltip).display).to.eq('none');
+    expect(tooltip.innerText).to.eq('');
+
+    // ensure singular item is not pluralized
+    bars[1].dispatchEvent(new PointerEvent('pointerenter'));
+    await el.updateComplete;
+    expect(tooltip.innerText).to.match(/^1 foobar\n4\/23\/1940 - 8\/13\/1980/);
+  });
+
   it('does not show tooltip while dragging', async () => {
     const el = await createCustomElementInHTMLContainer();
     const bars = el.shadowRoot?.querySelectorAll(
-      '.bar'
+      '.bar-pointer-target'
     ) as unknown as SVGRectElement[];
     const tooltip = el.shadowRoot?.querySelector('#tooltip') as HTMLDivElement;
     expect(tooltip.innerText).to.eq('');
@@ -507,7 +538,7 @@ describe('HistogramDateRange', () => {
     );
 
     const leftBarToClick = Array.from(
-      el.shadowRoot?.querySelectorAll('.bar') as NodeList
+      el.shadowRoot?.querySelectorAll('.bar-pointer-target') as NodeList
     )[1]; // click on second bar to the left
 
     leftBarToClick.dispatchEvent(new Event('click'));
@@ -515,7 +546,7 @@ describe('HistogramDateRange', () => {
     expect(el.minSelectedDate).to.eq('1910'); // range was extended to left
 
     const rightBarToClick = Array.from(
-      el.shadowRoot?.querySelectorAll('.bar') as NodeList
+      el.shadowRoot?.querySelectorAll('.bar-pointer-target') as NodeList
     )[8]; // click on second bar from the right
 
     rightBarToClick.dispatchEvent(new Event('click'));
@@ -541,14 +572,14 @@ describe('HistogramDateRange', () => {
     ///////////////////////////////////////////////
 
     const leftBarToClick = Array.from(
-      el.shadowRoot?.querySelectorAll('.bar') as NodeList
+      el.shadowRoot?.querySelectorAll('.bar-pointer-target') as NodeList
     )[3]; // click on fourth bar to the left
 
     leftBarToClick.dispatchEvent(new Event('click'));
     expect(el.minSelectedDate).to.eq('1932'); // range was extended to the right
 
     const rightBarToClick = Array.from(
-      el.shadowRoot?.querySelectorAll('.bar') as NodeList
+      el.shadowRoot?.querySelectorAll('.bar-pointer-target') as NodeList
     )[8]; // click on second bar from the right
 
     rightBarToClick.dispatchEvent(new Event('click'));
@@ -634,7 +665,7 @@ describe('HistogramDateRange', () => {
     const bars = el.shadowRoot?.querySelectorAll(
       '.bar'
     ) as unknown as SVGRectElement[];
-    const heights = Array.from(bars).map(b => b.height.baseVal.value);
+    const heights = Array.from(bars, b => b.height.baseVal.value);
     expect(heights).to.eql([157]);
   });
 
@@ -648,7 +679,7 @@ describe('HistogramDateRange', () => {
     const bars = el.shadowRoot?.querySelectorAll(
       '.bar'
     ) as unknown as SVGRectElement[];
-    const heights = Array.from(bars).map(b => b.height.baseVal.value);
+    const heights = Array.from(bars, b => b.height.baseVal.value);
     expect(heights).to.eql([37, 40, 38, 38, 37, 36]);
   });
 
@@ -666,9 +697,9 @@ describe('HistogramDateRange', () => {
       `
     );
     const bars = el.shadowRoot?.querySelectorAll(
-      '.bar'
+      '.bar-pointer-target'
     ) as unknown as SVGRectElement[];
-    const tooltips = Array.from(bars).map(b => b.dataset.tooltip);
+    const tooltips = Array.from(bars, b => b.dataset.tooltip);
     expect(tooltips).to.eql([
       'Jan 2020 - Mar 2020',
       'Apr 2020 - Jun 2020',
@@ -696,9 +727,9 @@ describe('HistogramDateRange', () => {
     );
 
     const bars = el.shadowRoot?.querySelectorAll(
-      '.bar'
+      '.bar-pointer-target'
     ) as unknown as SVGRectElement[];
-    const tooltips = Array.from(bars).map(b => b.dataset.tooltip);
+    const tooltips = Array.from(bars, b => b.dataset.tooltip);
     expect(tooltips).to.eql([
       'Jan 50 - Jun 50',
       'Jul 50 - Dec 50',
@@ -747,9 +778,9 @@ describe('HistogramDateRange', () => {
       `
     );
     const bars = el.shadowRoot?.querySelectorAll(
-      '.bar'
+      '.bar-pointer-target'
     ) as unknown as SVGRectElement[];
-    const tooltips = Array.from(bars).map(b => b.dataset.tooltip);
+    const tooltips = Array.from(bars, b => b.dataset.tooltip);
     expect(tooltips).to.eql([
       '2000 - 2001',
       '2002 - 2003',
@@ -778,9 +809,9 @@ describe('HistogramDateRange', () => {
     );
 
     const bars = el.shadowRoot?.querySelectorAll(
-      '.bar'
+      '.bar-pointer-target'
     ) as unknown as SVGRectElement[];
-    const tooltips = Array.from(bars).map(b => b.dataset.tooltip);
+    const tooltips = Array.from(bars, b => b.dataset.tooltip);
     expect(tooltips).to.eql(['20', '21', '22', '23', '24', '25']);
   });
 
@@ -797,9 +828,9 @@ describe('HistogramDateRange', () => {
       `
     );
     const bars = el.shadowRoot?.querySelectorAll(
-      '.bar'
+      '.bar-pointer-target'
     ) as unknown as SVGRectElement[];
-    const tooltips = Array.from(bars).map(b => b.dataset.tooltip);
+    const tooltips = Array.from(bars, b => b.dataset.tooltip);
     expect(tooltips).to.eql(['2001', '2002', '2003', '2004', '2005']);
   });
 
@@ -816,9 +847,9 @@ describe('HistogramDateRange', () => {
     );
 
     const bars = el.shadowRoot?.querySelectorAll(
-      '.bar'
+      '.bar-pointer-target'
     ) as unknown as SVGRectElement[];
-    let tooltips = Array.from(bars).map(b => b.dataset.tooltip);
+    let tooltips = Array.from(bars, b => b.dataset.tooltip);
     expect(tooltips).to.eql(['2001', '2002', '2003', '2004', '2005']); // default YYYY date format
 
     el.dateFormat = 'YYYY/MM';
@@ -827,7 +858,7 @@ describe('HistogramDateRange', () => {
     await el.updateComplete;
 
     // Should use dateFormat fallback for tooltips
-    tooltips = Array.from(bars).map(b => b.dataset.tooltip);
+    tooltips = Array.from(bars, b => b.dataset.tooltip);
     expect(tooltips).to.eql([
       '2001/01 - 2001/12',
       '2002/01 - 2002/12',
@@ -843,7 +874,7 @@ describe('HistogramDateRange', () => {
     await el.updateComplete;
 
     // Should use defined tooltipDateFormat for tooltips
-    tooltips = Array.from(bars).map(b => b.dataset.tooltip);
+    tooltips = Array.from(bars, b => b.dataset.tooltip);
     expect(tooltips).to.eql([
       'January 2001 - December 2001',
       'January 2002 - December 2002',
