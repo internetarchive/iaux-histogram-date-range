@@ -20,6 +20,28 @@ import { styleMap } from 'lit/directives/style-map.js';
 dayjs.extend(customParseFormat);
 dayjs.extend(fixFirstCenturyYears);
 
+type SliderId = 'slider-min' | 'slider-max';
+
+export type BinSnappingInterval = 'none' | 'month' | 'year';
+
+export type BarScalingPreset = 'linear' | 'logarithmic';
+export type BarScalingFunction = (binValue: number) => number;
+export type BarScalingOption = BarScalingPreset | BarScalingFunction;
+
+interface HistogramItem {
+  value: number;
+  height: number;
+  binStart: string;
+  binEnd: string;
+  tooltip: string;
+}
+
+interface BarDataset extends DOMStringMap {
+  numItems: string;
+  binStart: string;
+  binEnd: string;
+}
+
 // these values can be overridden via the component's HTML (camelCased) attributes
 const WIDTH = 180;
 const HEIGHT = 40;
@@ -31,11 +53,16 @@ const MISSING_DATA = 'no data';
 const UPDATE_DEBOUNCE_DELAY_MS = 0;
 const TOOLTIP_LABEL = 'item';
 
-// this function may be overridden only via Lit property expression or direct assignment
-const LOG_BAR_SCALING_FN = (binValue: number) => Math.log1p(binValue);
-
 // this constant is not set up to be overridden
 const SLIDER_CORNER_SIZE = 4;
+
+/**
+ * Map from bar scaling preset options to the corresponding function they represent
+ */
+const BAR_SCALING_PRESET_FNS: Record<BarScalingPreset, BarScalingFunction> = {
+  linear: (binValue: number) => binValue,
+  logarithmic: (binValue: number) => Math.log1p(binValue),
+};
 
 // these CSS custom props can be overridden from the HTML that is invoking this component
 const sliderColor = css`var(--histogramDateRangeSliderColor, #4B65FE)`;
@@ -52,24 +79,6 @@ const tooltipBackgroundColor = css`var(--histogramDateRangeTooltipBackgroundColo
 const tooltipTextColor = css`var(--histogramDateRangeTooltipTextColor, #FFFFFF)`;
 const tooltipFontSize = css`var(--histogramDateRangeTooltipFontSize, 1.1rem)`;
 const tooltipFontFamily = css`var(--histogramDateRangeTooltipFontFamily, sans-serif)`;
-
-type SliderId = 'slider-min' | 'slider-max';
-
-export type BinSnappingInterval = 'none' | 'month' | 'year';
-
-interface HistogramItem {
-  value: number;
-  height: number;
-  binStart: string;
-  binEnd: string;
-  tooltip: string;
-}
-
-interface BarDataset extends DOMStringMap {
-  numItems: string;
-  binStart: string;
-  binEnd: string;
-}
 
 @customElement('histogram-date-range')
 export class HistogramDateRange extends LitElement {
@@ -111,20 +120,20 @@ export class HistogramDateRange extends LitElement {
   @property({ type: String }) tooltipLabel = TOOLTIP_LABEL;
 
   /**
-   * A function mapping bin values to a new value that determines how tall each bar will
-   * be in relation to the others.
+   * A function or preset value indicating how the height of each bar relates to its
+   * corresponding bin value. Current presets available are 'logarithmic' and 'linear',
+   * but a custom function may be provided instead if other behavior is desired.
    *
-   * Default sizing function is the logarithm of the bin value, yielding more prominent
-   * bars for smaller values, at the cost of bars not being directly proportional to their
-   * values and having relatively smooth variation among values of a similar magnitude.
-   * This ensures that when the difference between the min and max values is large, small
-   * values are not as liable to completely disappear visually.
+   * The default scaling (`'logarithmic'`) uses the logarithm of each bin value, yielding
+   * more prominent bars for smaller values. This ensures that even when the difference
+   * between the min & max values is large, small values are unlikely to completely disappear
+   * visually. However, the cost is that bars have less noticeable variation among values of
+   * a similar magnitude, and their heights are not a direct representation of the bin values.
    *
-   * For linearly-scaled bars, set this to the identity function.
+   * The `'linear'` preset option instead sizes the bars in linear proportion to their bin
+   * values.
    */
-  @property({ attribute: false }) barScalingFunction: (
-    binValue: number
-  ) => number = LOG_BAR_SCALING_FN;
+  @property({ type: String }) barScaling: BarScalingOption = 'logarithmic';
 
   // internal reactive properties not exposed as attributes
   @state() private _tooltipOffsetX = 0;
@@ -263,6 +272,17 @@ export class HistogramDateRange extends LitElement {
         // We still align it to second boundaries to resolve minor discrepancies
         return this.snapToNextSecond(timestamp);
     }
+  }
+
+  /**
+   * Function to scale bin values, whether from a preset or a provided custom function.
+   */
+  private get barScalingFunction(): BarScalingFunction {
+    if (typeof this.barScaling === 'string') {
+      return BAR_SCALING_PRESET_FNS[this.barScaling];
+    }
+
+    return this.barScaling;
   }
 
   private calculateHistData(): HistogramItem[] {

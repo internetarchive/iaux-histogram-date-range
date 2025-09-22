@@ -73,6 +73,26 @@
     </div>
 
     <div class="container">
+      <div class="description">
+        as above, but with linear scaled bars
+      </div>
+      <histogram-date-range
+        width="175"
+        tooltipwidth="120"
+        dateFormat="YYYY"
+        updateDelay="1000"
+        missingDataMessage="..."
+        barScaling="linear"
+        minSelectedDate="1987"
+        maxSelectedDate="2016"
+        minDate="1987"
+        maxDate="2016"
+        bins="[1519,1643,1880,2046,1973,2085,2148,2152,2349,2304,2314,2484,2590,2450,2495,2475,2392,2631,2504,2619,2519,2552,2462,2217,2171,2132,2127,2041,1638,1441]"
+      >
+      </histogram-date-range>
+    </div>
+
+    <div class="container">
       <div class="description">small year range and few bins</div>
       <histogram-date-range width="175" tooltipwidth="120"
         minDate="2008" maxDate="2016" bins="[76104,866978,1151617,986331,218672,107410,3324]">
