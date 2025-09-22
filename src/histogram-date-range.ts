@@ -175,7 +175,8 @@ export class HistogramDateRange extends LitElement {
       changedProps.has('maxSelectedDate') ||
       changedProps.has('width') ||
       changedProps.has('height') ||
-      changedProps.has('binSnapping')
+      changedProps.has('binSnapping') ||
+      changedProps.has('barScaling')
     ) {
       this.handleDataUpdate();
     }

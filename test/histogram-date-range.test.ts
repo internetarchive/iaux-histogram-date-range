@@ -44,7 +44,7 @@ async function createCustomElementInHTMLContainer(): Promise<HistogramDateRange>
 }
 
 describe('HistogramDateRange', () => {
-  it('shows scaled histogram bars when provided with data', async () => {
+  it('shows log-scaled histogram bars when provided with data', async () => {
     const el = await createCustomElementInHTMLContainer();
     const bars = el.shadowRoot?.querySelectorAll(
       '.bar'
@@ -52,6 +52,32 @@ describe('HistogramDateRange', () => {
     const heights = Array.from(bars, b => b.height.baseVal.value);
 
     expect(heights).to.eql([38, 7, 50]);
+  });
+
+  it('uses linear bar height scaling when specified', async () => {
+    const el = await createCustomElementInHTMLContainer();
+    el.barScaling = 'linear';
+    await el.updateComplete;
+
+    const bars = el.shadowRoot?.querySelectorAll(
+      '.bar'
+    ) as unknown as SVGRectElement[];
+    const heights = Array.from(bars, b => b.height.baseVal.value);
+
+    expect(heights).to.eql([16, 0, 50]);
+  });
+
+  it('uses custom bar height scaling when specified', async () => {
+    const el = await createCustomElementInHTMLContainer();
+    el.barScaling = (x: number) => Math.sqrt(x);
+    await el.updateComplete;
+
+    const bars = el.shadowRoot?.querySelectorAll(
+      '.bar'
+    ) as unknown as SVGRectElement[];
+    const heights = Array.from(bars, b => b.height.baseVal.value);
+
+    expect(heights).to.eql([28, 5, 50]);
   });
 
   it('changes the position of the sliders and standardizes date format when dates are entered', async () => {
