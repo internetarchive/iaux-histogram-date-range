@@ -315,8 +315,7 @@ export class HistogramDateRange extends LitElement {
 
       return {
         value: v,
-        // use log scaling for the height of the bar to prevent tall bars from
-        // making the smaller ones too small to see
+        // apply the configured scaling function to the bin value before determining bar height
         height: Math.floor(this.barScalingFunction(v) * valueScale),
         binStart,
         binEnd,
