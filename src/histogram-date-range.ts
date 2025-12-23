@@ -984,6 +984,21 @@ export class HistogramDateRange extends LitElement {
     `;
   }
 
+  private get histogramAccessibility(): TemplateResult {
+    const rangeText =
+      this.minSelectedDate && this.maxSelectedDate
+        ? `from ${this.minSelectedDate} to ${this.maxSelectedDate}`
+        : 'for all available dates';
+
+    const titleText = `Filter results distribution ${rangeText}`;
+
+    const descText =
+      `This chart shows the distribution of search results ${rangeText}. The bars represent result counts for each filter category within the selected date range.`.trim();
+
+    return html` <title id="histogram-title">${titleText}</title
+      ><desc id="histogram-desc">${descText} </desc>`;
+  }
+
   private get noDataTemplate(): TemplateResult {
     return html`
       <div class="missing-data-message">${this.missingDataMessage}</div>
@@ -1145,9 +1160,10 @@ export class HistogramDateRange extends LitElement {
           <svg
             width="${this.width}"
             height="${this.height}"
+            aria-labelledby="histogram-title histogram-desc"
             @pointerleave="${this.drop}"
           >
-            ${this.selectedRangeTemplate}
+            ${this.histogramAccessibility} ${this.selectedRangeTemplate}
             <svg id="histogram">${this.histogramTemplate}</svg>
             ${this.minSliderTemplate} ${this.maxSliderTemplate}
           </svg>
