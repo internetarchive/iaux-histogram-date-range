@@ -985,18 +985,24 @@ export class HistogramDateRange extends LitElement {
   }
 
   private get histogramAccessibility(): TemplateResult {
-    const rangeText =
-      this.minSelectedDate && this.maxSelectedDate
-        ? `from ${this.minSelectedDate} to ${this.maxSelectedDate}`
-        : 'for all available dates';
+    let rangeText: string;
+    if (this.minSelectedDate && this.maxSelectedDate) {
+      rangeText = `from ${this.minSelectedDate} to ${this.maxSelectedDate}`;
+    } else if (this.minSelectedDate) {
+      rangeText = `from ${this.minSelectedDate}`;
+    } else if (this.maxSelectedDate) {
+      rangeText = `up to ${this.maxSelectedDate}`;
+    } else {
+      rangeText = 'for all available dates';
+    }
 
     const titleText = `Filter results distribution ${rangeText}`;
 
     const descText =
-      `This chart shows the distribution of search results ${rangeText}. The bars represent result counts for each filter category within the selected date range.`.trim();
+      `This chart shows the distribution of search results ${rangeText}. The bars represent result counts for each time period within the selected date range.`.trim();
 
-    return html` <title id="histogram-title">${titleText}</title
-      ><desc id="histogram-desc">${descText} </desc>`;
+    return html`<title id="histogram-title">${titleText}</title
+      ><desc id="histogram-desc">${descText}</desc>`;
   }
 
   private get noDataTemplate(): TemplateResult {
