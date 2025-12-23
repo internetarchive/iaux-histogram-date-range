@@ -989,4 +989,71 @@ describe('HistogramDateRange', () => {
     ) as HTMLInputElement;
     expect(maxDateInput.value).to.eq('2019');
   });
+
+  it('SVG accessbility - dynamic title for MIN and MAX date', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range
+          minDate="1900"
+          maxDate="2020"
+          .bins=${[33, 1, 100]}
+        >
+        </histogram-date-range>
+      `
+    );
+    const svg = el.shadowRoot?.querySelector('svg') as SVGElement;
+    expect(svg.querySelector('title')?.textContent).to.equal(
+      'Filter results distribution from 1900 to 2020'
+    );
+  });
+
+  it('SVG accessbility - dynamic title for MIN date', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range minDate="1900" .bins=${[33, 1, 100]}>
+        </histogram-date-range>
+      `
+    );
+    const svg = el.shadowRoot?.querySelector('svg') as SVGElement;
+    expect(svg.querySelector('title')?.textContent).to.equal(
+      'Filter results distribution from 1900'
+    );
+  });
+
+  it('SVG accessbility - dynamic title for MAX date', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range maxDate="2020" .bins=${[33, 1, 100]}>
+        </histogram-date-range>
+      `
+    );
+    const svg = el.shadowRoot?.querySelector('svg') as SVGElement;
+    expect(svg.querySelector('title')?.textContent).to.equal(
+      'Filter results distribution up to 2020'
+    );
+  });
+
+  it('SVG accessbility - dynamic title for all dates', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range .bins=${[33, 1, 100]}> </histogram-date-range>
+      `
+    );
+    const svg = el.shadowRoot?.querySelector('svg') as SVGElement;
+    expect(svg.querySelector('title')?.textContent).to.equal(
+      'Filter results distribution for all available dates'
+    );
+  });
+
+  it('SVG accessibility - dynamic desc', async () => {
+    const el = await fixture<HistogramDateRange>(
+      html`
+        <histogram-date-range .bins=${[33, 1, 100]}> </histogram-date-range>
+      `
+    );
+    const svg = el.shadowRoot?.querySelector('svg') as SVGElement;
+    expect(svg.querySelector('desc')?.textContent).to.equal(
+      'This chart shows the distribution of search results for all available dates. The bars represent result counts for each time period within the selected date range.'
+    );
+  });
 });
