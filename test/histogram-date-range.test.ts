@@ -1003,7 +1003,7 @@ describe('HistogramDateRange', () => {
     );
     const svg = el.shadowRoot?.querySelector('svg') as SVGElement;
     expect(svg.querySelector('title')?.textContent).to.equal(
-      'Filter results distribution from 1900 to 2020'
+      'Filter results for dates from 1900 to 2020'
     );
   });
 
@@ -1016,7 +1016,7 @@ describe('HistogramDateRange', () => {
     );
     const svg = el.shadowRoot?.querySelector('svg') as SVGElement;
     expect(svg.querySelector('title')?.textContent).to.equal(
-      'Filter results distribution from 1900'
+      'Filter results for dates from 1900'
     );
   });
 
@@ -1029,7 +1029,7 @@ describe('HistogramDateRange', () => {
     );
     const svg = el.shadowRoot?.querySelector('svg') as SVGElement;
     expect(svg.querySelector('title')?.textContent).to.equal(
-      'Filter results distribution up to 2020'
+      'Filter results for dates up to 2020'
     );
   });
 
@@ -1041,19 +1041,20 @@ describe('HistogramDateRange', () => {
     );
     const svg = el.shadowRoot?.querySelector('svg') as SVGElement;
     expect(svg.querySelector('title')?.textContent).to.equal(
-      'Filter results distribution for all available dates'
+      'Filter results for dates'
     );
   });
 
   it('SVG accessibility - dynamic desc', async () => {
     const el = await fixture<HistogramDateRange>(
       html`
-        <histogram-date-range .bins=${[33, 1, 100]}> </histogram-date-range>
+        <histogram-date-range maxDate="2020" .bins=${[33, 1, 100]}>
+        </histogram-date-range>
       `
     );
     const svg = el.shadowRoot?.querySelector('svg') as SVGElement;
     expect(svg.querySelector('desc')?.textContent).to.equal(
-      'This chart shows the distribution of search results for all available dates. The bars represent result counts for each time period within the selected date range.'
+      'This histogram shows the distribution of dates up to 2020'
     );
   });
 });

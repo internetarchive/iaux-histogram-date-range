@@ -984,22 +984,18 @@ export class HistogramDateRange extends LitElement {
     `;
   }
 
-  private get histogramAccessibility(): TemplateResult {
-    let rangeText: string;
+  private get histogramAccessibilityTemplate(): TemplateResult {
+    let rangeText: string = '';
     if (this.minSelectedDate && this.maxSelectedDate) {
-      rangeText = `from ${this.minSelectedDate} to ${this.maxSelectedDate}`;
+      rangeText = ` from ${this.minSelectedDate} to ${this.maxSelectedDate}`;
     } else if (this.minSelectedDate) {
-      rangeText = `from ${this.minSelectedDate}`;
+      rangeText = ` from ${this.minSelectedDate}`;
     } else if (this.maxSelectedDate) {
-      rangeText = `up to ${this.maxSelectedDate}`;
-    } else {
-      rangeText = 'for all available dates';
+      rangeText = ` up to ${this.maxSelectedDate}`;
     }
 
-    const titleText = `Filter results distribution ${rangeText}`;
-
-    const descText =
-      `This chart shows the distribution of search results ${rangeText}. The bars represent result counts for each time period within the selected date range.`.trim();
+    const titleText = `Filter results for dates${rangeText}`;
+    const descText = `This histogram shows the distribution of dates${rangeText}`;
 
     return html`<title id="histogram-title">${titleText}</title
       ><desc id="histogram-desc">${descText}</desc>`;
@@ -1169,7 +1165,7 @@ export class HistogramDateRange extends LitElement {
             aria-labelledby="histogram-title histogram-desc"
             @pointerleave="${this.drop}"
           >
-            ${this.histogramAccessibility} ${this.selectedRangeTemplate}
+            ${this.histogramAccessibilityTemplate} ${this.selectedRangeTemplate}
             <svg id="histogram">${this.histogramTemplate}</svg>
             ${this.minSliderTemplate} ${this.maxSliderTemplate}
           </svg>
