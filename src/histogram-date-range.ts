@@ -984,6 +984,23 @@ export class HistogramDateRange extends LitElement {
     `;
   }
 
+  private get histogramAccessibilityTemplate(): TemplateResult {
+    let rangeText: string = '';
+    if (this.minSelectedDate && this.maxSelectedDate) {
+      rangeText = ` from ${this.minSelectedDate} to ${this.maxSelectedDate}`;
+    } else if (this.minSelectedDate) {
+      rangeText = ` from ${this.minSelectedDate}`;
+    } else if (this.maxSelectedDate) {
+      rangeText = ` up to ${this.maxSelectedDate}`;
+    }
+
+    const titleText = `Filter results for dates${rangeText}`;
+    const descText = `This histogram shows the distribution of dates${rangeText}`;
+
+    return html`<title id="histogram-title">${titleText}</title
+      ><desc id="histogram-desc">${descText}</desc>`;
+  }
+
   private get noDataTemplate(): TemplateResult {
     return html`
       <div class="missing-data-message">${this.missingDataMessage}</div>
@@ -1145,9 +1162,10 @@ export class HistogramDateRange extends LitElement {
           <svg
             width="${this.width}"
             height="${this.height}"
+            aria-labelledby="histogram-title histogram-desc"
             @pointerleave="${this.drop}"
           >
-            ${this.selectedRangeTemplate}
+            ${this.histogramAccessibilityTemplate} ${this.selectedRangeTemplate}
             <svg id="histogram">${this.histogramTemplate}</svg>
             ${this.minSliderTemplate} ${this.maxSliderTemplate}
           </svg>
