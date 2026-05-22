@@ -436,6 +436,25 @@ describe('HistogramDateRange', () => {
     expect(eventCount).to.equal(1); // only one event was fired
   });
 
+  it('emits a custom event when sliders are dragged to a new range', async () => {
+    const el = await createCustomElementInHTMLContainer();
+    el.updateDelay = 0;
+    await el.updateComplete;
+
+    const minSlider = el.shadowRoot?.querySelector('#slider-min') as SVGElement;
+
+    const updateEventPromise = oneEvent(el, 'histogramDateRangeUpdated');
+
+    // simulate dragging the min slider to the right and releasing
+    minSlider.dispatchEvent(new PointerEvent('pointerdown'));
+    window.dispatchEvent(new PointerEvent('pointermove', { clientX: 75 }));
+    window.dispatchEvent(new PointerEvent('pointerup'));
+
+    const { detail } = await updateEventPromise;
+    expect(detail.minDate).to.equal('5/21/1950');
+    expect(detail.maxDate).to.equal('12/4/2020');
+  });
+
   it('shows/hides tooltip when hovering over (or pointing at) a bar', async () => {
     const el = await createCustomElementInHTMLContainer();
     // include a number which will require commas (1,000,000)
