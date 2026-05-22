@@ -204,7 +204,6 @@ export class HistogramDateRange extends LitElement {
       ) + this.snapEndOffset;
 
     this._binWidth = this._histWidth / this._numBins;
-    this._previousDateRange = this.currentDateRangeString;
     this._histData = this.calculateHistData();
     this.minSelectedDate = this.minSelectedDate
       ? this.minSelectedDate
