@@ -1,5 +1,26 @@
 # \<histogram-date-range>
 
+> **Deprecated.** This component now lives in
+> [`@internetarchive/elements`](https://github.com/internetarchive/elements) as
+> `ia-histogram-date-range`, as of elements 1.1.0. This package gets no further
+> releases; fixes and features go to elements instead.
+>
+> To move over:
+>
+> ```bash
+> npm rm @internetarchive/histogram-date-range
+> npm i @internetarchive/elements
+> ```
+>
+> ```js
+> import '@internetarchive/elements/ia-histogram-date-range/ia-histogram-date-range';
+> ```
+>
+> The tag becomes `<ia-histogram-date-range>` and the type becomes
+> `IAHistogramDateRange`. The props, events and CSS custom properties are
+> unchanged, though `BarScalingOption` and `BinSnappingInterval` now come from
+> `@internetarchive/elements/ia-histogram-date-range/models`.
+
 Check out the [interactive demo](https://internetarchive.github.io/iaux-histogram-date-range/demo/).
 
 This webcomponent follows the [open-wc](https://github.com/open-wc/open-wc) recommendation.
