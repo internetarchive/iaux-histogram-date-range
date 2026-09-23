@@ -73,72 +73,10 @@
     </div>
 
     <div class="container">
-      <div class="description">
-        as above, but with linear scaled bars
-      </div>
-      <histogram-date-range
-        width="175"
-        tooltipwidth="120"
-        dateFormat="YYYY"
-        updateDelay="1000"
-        missingDataMessage="..."
-        barScaling="linear"
-        minSelectedDate="1987"
-        maxSelectedDate="2016"
-        minDate="1987"
-        maxDate="2016"
-        bins="[1519,1643,1880,2046,1973,2085,2148,2152,2349,2304,2314,2484,2590,2450,2495,2475,2392,2631,2504,2619,2519,2552,2462,2217,2171,2132,2127,2041,1638,1441]"
-      >
-      </histogram-date-range>
-    </div>
-
-    <div class="container">
       <div class="description">small year range and few bins</div>
       <histogram-date-range width="175" tooltipwidth="120"
         minDate="2008" maxDate="2016" bins="[76104,866978,1151617,986331,218672,107410,3324]">
       </histogram-date-range>
-    </div>
-
-    <div class="container">
-      <div class="description">bins snapped to nearest month</div>
-      <histogram-date-range
-        width="175"
-        tooltipwidth="120"
-        dateFormat="YYYY-MM"
-        tooltipDateFormat="MMM YYYY"
-        binSnapping="month"
-        minDate="2009-05"
-        maxDate="2014-08"
-        bins="[100,5000,2000,100,5000,2000,100,5000,2000,100,5000,2000,100,5000,2000,100]"
-        style="--histogramDateRangeInputWidth: 50px;"
-      ></histogram-date-range>
-    </div>
-
-    <div class="container">
-      <div class="description">bins snapped to nearest year</div>
-      <histogram-date-range
-        width="175"
-        dateFormat="YYYY"
-        binSnapping="year"
-        minDate="2009"
-        maxDate="2018"
-        bins="[100,1000,10000,100,1000,10000,100,1000,10000,100]"
-      ></histogram-date-range>
-    </div>
-
-    <div class="container">
-      <div class="clipped text-centered">
-        <div class="description">inside clipping container</div>
-        <histogram-date-range
-          width="175"
-          dateFormat="MM/YYYY"
-          binSnapping="month"
-          minDate="01/2000"
-          maxDate="12/2005"
-          bins="[1,12,2,11,3,10,4,9,5,8,6,7]"
-          style="--histogramDateRangeInputWidth: 50px;"
-        ></histogram-date-range>
-      </div>
     </div>
 
     <div class="container">
