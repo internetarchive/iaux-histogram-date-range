@@ -5,6 +5,8 @@
     "dayjs/esm/plugin/customParseFormat": "./dayjs/esm/plugin/customParseFormat.js",
     "lit": "./lit.js",
     "lit/decorators.js": "./lit/decorators.js",
-    "lit/directives/live.js": "./lit/directives/live.js"
+    "lit/directives/class-map.js": "./lit/directives/class-map.js",
+    "lit/directives/live.js": "./lit/directives/live.js",
+    "lit/directives/style-map.js": "./lit/directives/style-map.js"
   }
 }

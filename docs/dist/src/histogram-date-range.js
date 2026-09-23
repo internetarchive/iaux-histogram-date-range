@@ -9,19 +9,23 @@ var __decorate = (decorators, target, key, kind) => {
     __defProp(target, key, result);
   return result;
 };
-import {
-  css,
-  html,
-  nothing,
-  LitElement,
-  svg
-} from "../../_snowpack/pkg/lit.js";
-import {property, state, customElement} from "../../_snowpack/pkg/lit/decorators.js";
-import {live} from "../../_snowpack/pkg/lit/directives/live.js";
 import "../../_snowpack/pkg/@internetarchive/ia-activity-indicator.js";
 import dayjs from "../../_snowpack/pkg/dayjs/esm.js";
 import customParseFormat from "../../_snowpack/pkg/dayjs/esm/plugin/customParseFormat.js";
+import fixFirstCenturyYears from "./plugins/fix-first-century-years.js";
+import {
+  css,
+  html,
+  LitElement,
+  nothing,
+  svg
+} from "../../_snowpack/pkg/lit.js";
+import {customElement, property, state, query} from "../../_snowpack/pkg/lit/decorators.js";
+import {live} from "../../_snowpack/pkg/lit/directives/live.js";
+import {classMap} from "../../_snowpack/pkg/lit/directives/class-map.js";
+import {styleMap} from "../../_snowpack/pkg/lit/directives/style-map.js";
 dayjs.extend(customParseFormat);
+dayjs.extend(fixFirstCenturyYears);
 const WIDTH = 180;
 const HEIGHT = 40;
 const SLIDER_WIDTH = 10;
@@ -30,7 +34,12 @@ const TOOLTIP_HEIGHT = 30;
 const DATE_FORMAT = "YYYY";
 const MISSING_DATA = "no data";
 const UPDATE_DEBOUNCE_DELAY_MS = 0;
+const TOOLTIP_LABEL = "item";
 const SLIDER_CORNER_SIZE = 4;
+const BAR_SCALING_PRESET_FNS = {
+  linear: (binValue) => binValue,
+  logarithmic: (binValue) => Math.log1p(binValue)
+};
 const sliderColor = css`var(--histogramDateRangeSliderColor, #4B65FE)`;
 const selectedRangeColor = css`var(--histogramDateRangeSelectedRangeColor, #DBE0FF)`;
 const barIncludedFill = css`var(--histogramDateRangeBarIncludedFill, #2C2C2C)`;
@@ -61,8 +70,11 @@ export let HistogramDateRange = class extends LitElement {
     this.disabled = false;
     this.bins = [];
     this.updateWhileFocused = false;
-    this._tooltipOffset = 0;
-    this._tooltipVisible = false;
+    this.binSnapping = "none";
+    this.tooltipLabel = TOOLTIP_LABEL;
+    this.barScaling = "logarithmic";
+    this._tooltipOffsetX = 0;
+    this._tooltipOffsetY = 0;
     this._isDragging = false;
     this._isLoading = false;
     this._minSelectedDate = "";
@@ -99,6 +111,9 @@ export let HistogramDateRange = class extends LitElement {
         this.minSelectedDate = this.translatePositionToDate(this.validMinSliderX(newX));
       } else {
         this.maxSelectedDate = this.translatePositionToDate(this.validMaxSliderX(newX));
+        if (this.getMSFromString(this.maxSelectedDate) > this._maxDateMS) {
+          this.maxSelectedDate = this.maxDate;
+        }
       }
     };
   }
@@ -106,8 +121,8 @@ export let HistogramDateRange = class extends LitElement {
     this.removeListeners();
     super.disconnectedCallback();
   }
-  updated(changedProps) {
-    if (changedProps.has("bins") || changedProps.has("minDate") || changedProps.has("maxDate") || changedProps.has("minSelectedDate") || changedProps.has("maxSelectedDate") || changedProps.has("width") || changedProps.has("height")) {
+  willUpdate(changedProps) {
+    if (changedProps.has("bins") || changedProps.has("minDate") || changedProps.has("maxDate") || changedProps.has("minSelectedDate") || changedProps.has("maxSelectedDate") || changedProps.has("width") || changedProps.has("height") || changedProps.has("binSnapping") || changedProps.has("barScaling")) {
       this.handleDataUpdate();
     }
   }
@@ -116,27 +131,66 @@ export let HistogramDateRange = class extends LitElement {
       return;
     }
     this._histWidth = this.width - this.sliderWidth * 2;
-    this._minDateMS = this.getMSFromString(this.minDate);
-    this._maxDateMS = this.getMSFromString(this.maxDate);
+    this._minDateMS = this.snapTimestamp(this.getMSFromString(this.minDate));
+    this._maxDateMS = this.snapTimestamp(this.getMSFromString(this.maxDate) + this.snapInterval) + this.snapEndOffset;
     this._binWidth = this._histWidth / this._numBins;
-    this._previousDateRange = this.currentDateRangeString;
     this._histData = this.calculateHistData();
     this.minSelectedDate = this.minSelectedDate ? this.minSelectedDate : this.minDate;
     this.maxSelectedDate = this.maxSelectedDate ? this.maxSelectedDate : this.maxDate;
-    this.requestUpdate();
+  }
+  snapToNextSecond(timestamp) {
+    return Math.ceil(timestamp / 1e3) * 1e3;
+  }
+  snapToMonth(timestamp) {
+    const d = dayjs(timestamp);
+    const monthsToAdd = d.date() < 16 ? 0 : 1;
+    const snapped = d.add(monthsToAdd, "month").date(1).hour(0).minute(0).second(0).millisecond(0);
+    return snapped.valueOf();
+  }
+  snapToYear(timestamp) {
+    const d = dayjs(timestamp);
+    const yearsToAdd = d.month() < 6 ? 0 : 1;
+    const snapped = d.add(yearsToAdd, "year").month(0).date(1).hour(0).minute(0).second(0).millisecond(0);
+    return snapped.valueOf();
+  }
+  snapTimestamp(timestamp) {
+    switch (this.binSnapping) {
+      case "year":
+        return this.snapToYear(timestamp);
+      case "month":
+        return this.snapToMonth(timestamp);
+      case "none":
+      default:
+        return this.snapToNextSecond(timestamp);
+    }
+  }
+  get barScalingFunction() {
+    if (typeof this.barScaling === "string") {
+      return BAR_SCALING_PRESET_FNS[this.barScaling];
+    }
+    return this.barScaling;
   }
   calculateHistData() {
+    const {bins, height, dateRangeMS, _numBins, _minDateMS} = this;
     const minValue = Math.min(...this.bins);
     const maxValue = Math.max(...this.bins);
-    const valueRange = minValue === maxValue ? 1 : Math.log1p(maxValue);
-    const valueScale = this.height / valueRange;
-    const dateScale = this.dateRangeMS / this._numBins;
-    return this.bins.map((v, i) => {
+    const valueRange = minValue === maxValue ? 1 : this.barScalingFunction(maxValue);
+    const valueScale = height / valueRange;
+    const dateScale = dateRangeMS / _numBins;
+    return bins.map((v, i) => {
+      const binStartMS = this.snapTimestamp(i * dateScale + _minDateMS);
+      const binStart = this.formatDate(binStartMS);
+      const binEndMS = this.snapTimestamp((i + 1) * dateScale + _minDateMS) + this.snapEndOffset;
+      const binEnd = this.formatDate(binEndMS);
+      const tooltipStart = this.formatDate(binStartMS, this.tooltipDateFormat);
+      const tooltipEnd = this.formatDate(binEndMS, this.tooltipDateFormat);
+      const tooltip = tooltipStart === tooltipEnd ? tooltipStart : `${tooltipStart} - ${tooltipEnd}`;
       return {
         value: v,
-        height: Math.floor(Math.log1p(v) * valueScale),
-        binStart: `${this.formatDate(i * dateScale + this._minDateMS)}`,
-        binEnd: `${this.formatDate((i + 1) * dateScale + this._minDateMS)}`
+        height: Math.floor(this.barScalingFunction(v) * valueScale),
+        binStart,
+        binEnd,
+        tooltip
       };
     });
   }
@@ -154,6 +208,28 @@ export let HistogramDateRange = class extends LitElement {
   }
   get histogramRightEdgeX() {
     return this.width - this.sliderWidth;
+  }
+  get snapInterval() {
+    const yearMS = 31536e6;
+    const monthMS = 2592e6;
+    switch (this.binSnapping) {
+      case "year":
+        return yearMS;
+      case "month":
+        return monthMS;
+      case "none":
+      default:
+        return 0;
+    }
+  }
+  get snapEndOffset() {
+    return this.binSnapping !== "none" && this._numBins > 1 ? -1 : 0;
+  }
+  get tooltipDateFormat() {
+    return this._tooltipDateFormat ?? this.dateFormat;
+  }
+  set tooltipDateFormat(value) {
+    this._tooltipDateFormat = value;
   }
   get loading() {
     return this._isLoading;
@@ -199,7 +275,8 @@ export let HistogramDateRange = class extends LitElement {
     return this.validMinSliderX(x);
   }
   get maxSliderX() {
-    const x = this.translateDateToPosition(this.maxSelectedDate);
+    const maxSelectedDateMS = this.snapTimestamp(this.getMSFromString(this.maxSelectedDate) + this.snapInterval);
+    const x = this.translateDateToPosition(this.formatDate(maxSelectedDateMS));
     return this.validMaxSliderX(x);
   }
   get dateRangeMS() {
@@ -212,18 +289,25 @@ export let HistogramDateRange = class extends LitElement {
     const target = e.currentTarget;
     const x = target.x.baseVal.value + this.sliderWidth / 2;
     const dataset = target.dataset;
-    const itemsText = `item${dataset.numItems !== "1" ? "s" : ""}`;
+    const itemsText = `${this.tooltipLabel}${dataset.numItems !== "1" ? "s" : ""}`;
     const formattedNumItems = Number(dataset.numItems).toLocaleString();
-    this._tooltipOffset = x + (this._binWidth - this.sliderWidth - this.tooltipWidth) / 2;
+    const tooltipPadding = 2;
+    const bufferHeight = 9;
+    const heightAboveHistogram = bufferHeight + this.tooltipHeight;
+    const histogramBounds = this.getBoundingClientRect();
+    const barX = histogramBounds.x + x;
+    const histogramY = histogramBounds.y;
+    this._tooltipOffsetX = barX - tooltipPadding + (this._binWidth - this.sliderWidth - this.tooltipWidth) / 2 + window.scrollX;
+    this._tooltipOffsetY = histogramY - heightAboveHistogram + window.scrollY;
     this._tooltipContent = html`
       ${formattedNumItems} ${itemsText}<br />
-      ${dataset.binStart} - ${dataset.binEnd}
+      ${dataset.tooltip}
     `;
-    this._tooltipVisible = true;
+    this._tooltip.showPopover?.();
   }
   hideTooltip() {
     this._tooltipContent = void 0;
-    this._tooltipVisible = false;
+    this._tooltip.hidePopover?.();
   }
   validMinSliderX(newX) {
     const rightLimit = Math.min(this.translateDateToPosition(this.maxSelectedDate), this.histogramRightEdgeX);
@@ -279,7 +363,7 @@ export let HistogramDateRange = class extends LitElement {
     this._dragOffset = e.clientX - histogramClientX - sliderX;
   }
   translatePositionToDate(x) {
-    const milliseconds = Math.ceil((x - this.sliderWidth) * this.dateRangeMS / this._histWidth);
+    const milliseconds = this.snapToNextSecond((x - this.sliderWidth) * this.dateRangeMS / this._histWidth);
     return this.formatDate(this._minDateMS + milliseconds);
   }
   translateDateToPosition(date) {
@@ -370,13 +454,16 @@ export let HistogramDateRange = class extends LitElement {
   }
   generateSliderSVG(sliderPositionX, id, sliderShape) {
     const k = id === "slider-min" ? 1 : -1;
+    const sliderClasses = classMap({
+      slider: true,
+      draggable: !this.disabled,
+      dragging: this._isDragging
+    });
     return svg`
     <svg
-      id="${id}"
-      class="
-      ${this.disabled ? "" : "draggable"}
-      ${this._isDragging ? "dragging" : ""}"
-      @pointerdown="${this.drag}"
+      id=${id}
+      class=${sliderClasses}
+      @pointerdown=${this.drag}
     >
       <path d="${sliderShape} z" fill="${sliderColor}" />
       <rect
@@ -411,47 +498,73 @@ export let HistogramDateRange = class extends LitElement {
     const barWidth = xScale - 1;
     let x = this.sliderWidth;
     return this._histData.map((data) => {
+      const {minSelectedDate, maxSelectedDate} = this;
+      const barHeight = data.height;
+      const binIsBeforeMin = this.isBefore(data.binEnd, minSelectedDate);
+      const binIsAfterMax = this.isAfter(data.binStart, maxSelectedDate);
+      const barFill = binIsBeforeMin || binIsAfterMax ? barExcludedFill : barIncludedFill;
+      const barStyle = `stroke-dasharray: 0 ${barWidth} ${barHeight} ${barWidth} 0 ${barHeight}`;
       const bar = svg`
         <rect
+          class="bar-pointer-target"
+          x=${x}
+          y="0"
+          width=${barWidth}
+          height=${this.height}
+          @pointerenter=${this.showTooltip}
+          @pointerleave=${this.hideTooltip}
+          @click=${this.handleBarClick}
+          fill="transparent"
+          data-num-items=${data.value}
+          data-bin-start=${data.binStart}
+          data-bin-end=${data.binEnd}
+          data-tooltip=${data.tooltip}
+        />
+        <rect
           class="bar"
-          style='stroke-dasharray: 0 ${barWidth} ${data.height} ${barWidth} 0 ${data.height};'
-          x="${x}"
-          y="${this.height - data.height}"
-          width="${barWidth}"
-          height="${data.height}"
-          @pointerenter="${this.showTooltip}"
-          @pointerleave="${this.hideTooltip}"
-          @click="${this.handleBarClick}"
-          fill="${x + barWidth >= this.minSliderX && x <= this.maxSliderX ? barIncludedFill : barExcludedFill}"
-          data-num-items="${data.value}"
-          data-bin-start="${data.binStart}"
-          data-bin-end="${data.binEnd}"
+          style=${barStyle}
+          x=${x}
+          y=${this.height - barHeight}
+          width=${barWidth}
+          height=${barHeight}
+          fill=${barFill}
         />`;
       x += xScale;
       return bar;
     });
   }
-  formatDate(dateMS) {
+  isBefore(date1, date2) {
+    const date1MS = this.getMSFromString(date1);
+    const date2MS = this.getMSFromString(date2);
+    return date1MS < date2MS;
+  }
+  isAfter(date1, date2) {
+    const date1MS = this.getMSFromString(date1);
+    const date2MS = this.getMSFromString(date2);
+    return date1MS > date2MS;
+  }
+  formatDate(dateMS, format = this.dateFormat) {
     if (Number.isNaN(dateMS)) {
       return "";
     }
     const date = dayjs(dateMS);
     if (date.year() < 1e3) {
-      return String(date.year());
+      const tmpDate = date.year(199999);
+      return tmpDate.format(format).replace(/199999/g, date.year().toString());
     }
-    return date.format(this.dateFormat);
+    return date.format(format);
   }
   get minInputTemplate() {
     return html`
       <input
         id="date-min"
-        placeholder="${this.dateFormat}"
+        placeholder=${this.dateFormat}
         type="text"
-        @focus="${this.handleInputFocus}"
-        @blur="${this.handleMinDateInput}"
-        @keyup="${this.handleKeyUp}"
-        .value="${live(this.minSelectedDate)}"
-        ?disabled="${this.disabled}"
+        @focus=${this.handleInputFocus}
+        @blur=${this.handleMinDateInput}
+        @keyup=${this.handleKeyUp}
+        .value=${live(this.minSelectedDate)}
+        ?disabled=${this.disabled}
       />
     `;
   }
@@ -459,13 +572,13 @@ export let HistogramDateRange = class extends LitElement {
     return html`
       <input
         id="date-max"
-        placeholder="${this.dateFormat}"
+        placeholder=${this.dateFormat}
         type="text"
-        @focus="${this.handleInputFocus}"
-        @blur="${this.handleMaxDateInput}"
-        @keyup="${this.handleKeyUp}"
-        .value="${live(this.maxSelectedDate)}"
-        ?disabled="${this.disabled}"
+        @focus=${this.handleInputFocus}
+        @blur=${this.handleMaxDateInput}
+        @keyup=${this.handleKeyUp}
+        .value=${live(this.maxSelectedDate)}
+        ?disabled=${this.disabled}
       />
     `;
   }
@@ -476,21 +589,29 @@ export let HistogramDateRange = class extends LitElement {
     return html`<label for="date-max" class="sr-only">Maximum date:</label>`;
   }
   get tooltipTemplate() {
+    const styles = styleMap({
+      width: `${this.tooltipWidth}px`,
+      height: `${this.tooltipHeight}px`,
+      top: `${this._tooltipOffsetY}px`,
+      left: `${this._tooltipOffsetX}px`
+    });
     return html`
-      <style>
-        #tooltip {
-          width: ${this.tooltipWidth}px;
-          height: ${this.tooltipHeight}px;
-          top: ${-9 - this.tooltipHeight}px;
-          left: ${this._tooltipOffset}px;
-          display: ${this._tooltipVisible ? "block" : "none"};
-        }
-        #tooltip:after {
-          left: ${this.tooltipWidth / 2}px;
-        }
-      </style>
-      <div id="tooltip">${this._tooltipContent}</div>
+      <div id="tooltip" style=${styles} popover>${this._tooltipContent}</div>
     `;
+  }
+  get histogramAccessibilityTemplate() {
+    let rangeText = "";
+    if (this.minSelectedDate && this.maxSelectedDate) {
+      rangeText = ` from ${this.minSelectedDate} to ${this.maxSelectedDate}`;
+    } else if (this.minSelectedDate) {
+      rangeText = ` from ${this.minSelectedDate}`;
+    } else if (this.maxSelectedDate) {
+      rangeText = ` up to ${this.maxSelectedDate}`;
+    }
+    const titleText = `Filter results for dates${rangeText}`;
+    const descText = `This histogram shows the distribution of dates${rangeText}`;
+    return html`<title id="histogram-title">${titleText}</title
+      ><desc id="histogram-desc">${descText}</desc>`;
   }
   get noDataTemplate() {
     return html`
@@ -526,9 +647,10 @@ export let HistogramDateRange = class extends LitElement {
           <svg
             width="${this.width}"
             height="${this.height}"
+            aria-labelledby="histogram-title histogram-desc"
             @pointerleave="${this.drop}"
           >
-            ${this.selectedRangeTemplate}
+            ${this.histogramAccessibilityTemplate} ${this.selectedRangeTemplate}
             <svg id="histogram">${this.histogramTemplate}</svg>
             ${this.minSliderTemplate} ${this.maxSliderTemplate}
           </svg>
@@ -574,7 +696,8 @@ HistogramDateRange.styles = css`
       -ms-user-select: none; /* Internet Explorer/Edge */
       user-select: none; /* current Chrome, Edge, Opera and Firefox */
     }
-    .bar {
+    .bar,
+    .bar-pointer-target {
       /* create a transparent border around the hist bars to prevent "gaps" and
       flickering when moving around between bars. this also helps with handling
       clicks on the bars, preventing users from being able to click in between
@@ -583,11 +706,15 @@ HistogramDateRange.styles = css`
       /* ensure transparent stroke wide enough to cover gap between bars */
       stroke-width: 2px;
     }
-    .bar:hover {
+    .bar {
+      /* ensure the bar's pointer target receives events, not the bar itself */
+      pointer-events: none;
+    }
+    .bar-pointer-target:hover + .bar {
       /* highlight currently hovered bar */
       fill-opacity: 0.7;
     }
-    .disabled .bar:hover {
+    .disabled .bar-pointer-target:hover + .bar {
       /* ensure no visual hover interaction when disabled */
       fill-opacity: 1;
     }
@@ -595,6 +722,8 @@ HistogramDateRange.styles = css`
     #tooltip {
       position: absolute;
       background: ${tooltipBackgroundColor};
+      margin: 0;
+      border: 0;
       color: ${tooltipTextColor};
       text-align: center;
       border-radius: 3px;
@@ -603,18 +732,23 @@ HistogramDateRange.styles = css`
       font-family: ${tooltipFontFamily};
       touch-action: none;
       pointer-events: none;
+      overflow: visible;
     }
     #tooltip:after {
       content: '';
       position: absolute;
       margin-left: -5px;
       top: 100%;
+      left: 50%;
       /* arrow */
       border: 5px solid ${tooltipTextColor};
       border-color: ${tooltipBackgroundColor} transparent transparent
         transparent;
     }
     /****** slider ********/
+    .slider {
+      shape-rendering: crispEdges; /* So the slider doesn't get blurry if dragged between pixels */
+    }
     .draggable:hover {
       cursor: grab;
     }
@@ -689,26 +823,44 @@ __decorate([
   property({type: Boolean})
 ], HistogramDateRange.prototype, "disabled", 2);
 __decorate([
-  property({type: Object})
+  property({type: Array})
 ], HistogramDateRange.prototype, "bins", 2);
 __decorate([
   property({type: Boolean})
 ], HistogramDateRange.prototype, "updateWhileFocused", 2);
 __decorate([
+  property({type: String})
+], HistogramDateRange.prototype, "binSnapping", 2);
+__decorate([
+  property({type: String})
+], HistogramDateRange.prototype, "tooltipLabel", 2);
+__decorate([
+  property({type: String})
+], HistogramDateRange.prototype, "barScaling", 2);
+__decorate([
   state()
-], HistogramDateRange.prototype, "_tooltipOffset", 2);
+], HistogramDateRange.prototype, "_tooltipOffsetX", 2);
+__decorate([
+  state()
+], HistogramDateRange.prototype, "_tooltipOffsetY", 2);
 __decorate([
   state()
 ], HistogramDateRange.prototype, "_tooltipContent", 2);
 __decorate([
   state()
-], HistogramDateRange.prototype, "_tooltipVisible", 2);
+], HistogramDateRange.prototype, "_tooltipDateFormat", 2);
 __decorate([
   state()
 ], HistogramDateRange.prototype, "_isDragging", 2);
 __decorate([
   state()
 ], HistogramDateRange.prototype, "_isLoading", 2);
+__decorate([
+  query("#tooltip")
+], HistogramDateRange.prototype, "_tooltip", 2);
+__decorate([
+  property({type: String})
+], HistogramDateRange.prototype, "tooltipDateFormat", 1);
 __decorate([
   property({type: Boolean})
 ], HistogramDateRange.prototype, "loading", 1);

@@ -1,5 +1,13 @@
 # \<histogram-date-range>
 
+> **Deprecated.** This component now lives in [`@internetarchive/elements`](https://github.com/internetarchive/elements) as `ia-histogram-date-range`. Use that instead:
+>
+> ```js
+> import '@internetarchive/elements/ia-histogram-date-range/ia-histogram-date-range';
+> ```
+>
+> This repo isn't getting any more updates.
+
 Check out the [interactive demo](https://internetarchive.github.io/iaux-histogram-date-range/demo/).
 
 This webcomponent follows the [open-wc](https://github.com/open-wc/open-wc) recommendation.
